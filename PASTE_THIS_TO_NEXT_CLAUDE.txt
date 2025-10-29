@@ -1,63 +1,136 @@
 ===== COPY EVERYTHING BELOW THIS LINE AND PASTE TO NEXT CLAUDE =====
 
-Hi! I'm continuing the Interactive Video Campaign Builder project from the previous session.
+Hi! I'm continuing the Interactive Video Campaign Builder project.
 
 PROJECT LOCATION: C:\Users\PCS\code\int-video
+GITHUB: https://github.com/anup1969/int-video
 
-CONTEXT FILES TO READ:
+📋 CONTEXT FILES TO READ (IN ORDER):
 1. C:\Users\PCS\OneDrive\Desktop\int video claude code\project instructions.txt (original requirements - READ FIRST!)
-2. C:\Users\PCS\code\int-video\HANDOFF_TO_NEXT_CLAUDE.md (complete handoff document - READ SECOND!)
-3. C:\Users\PCS\code\int-video\QUICK_START.md (current status summary)
+2. C:\Users\PCS\code\int-video\HANDOFF_TO_NEXT_CLAUDE.md (complete session 1 handoff - READ SECOND!)
+3. C:\Users\PCS\code\int-video\SESSION_SUMMARY.md (session overview)
 
-WHAT'S BEEN DONE (Session 1 - Oct 29):
-✅ Complete Next.js app with all React components (30+ files)
-✅ Visual Flow Builder working perfectly (tested locally)
-✅ Database schema created (3 tables: campaigns, steps, connections)
-✅ SQL migration files ready in supabase/setup.sql
-✅ API routes created (CRUD operations)
-✅ Supabase client configured
-✅ Git repository initialized (3 commits)
-✅ Netlify configuration ready
-✅ Comprehensive documentation created
+✅ CURRENT STATUS (Session 1 Complete - Oct 29, 2025):
 
-WHAT I'VE COMPLETED (User Actions):
-[X] Database setup in Supabase - DONE / NOT DONE (pick one)
-[X] .env.local created with Supabase keys - DONE / NOT DONE
-[X] Code pushed to GitHub - DONE / NOT DONE
-[X] Deployed to Netlify - DONE / NOT DONE
+**Phase 1 & 2: 100% COMPLETE!** 🎉
 
-WHAT I NEED NOW (Session 2):
-1. Integrate save/load functionality with Flow Builder
-2. Add auto-save feature (every 30 seconds)
-3. Test everything end-to-end
-4. Fix any bugs found
-5. Deploy updates to Netlify
+✅ Complete Next.js 14 app with all React components (30+ files)
+✅ Visual Flow Builder working perfectly (drag-and-drop, 7 answer types, logic branching)
+✅ **Save/Load Integration COMPLETE** - campaigns save to & load from database
+✅ **Auto-Save Feature WORKING** - saves every 30 seconds automatically
+✅ **Video Upload System COMPLETE** - uploads to Supabase Storage with progress indicator
+✅ Database schema ready (3 tables: campaigns, steps, connections)
+✅ All API routes working (GET/POST/PUT/DELETE campaigns, save state, upload video)
+✅ Code pushed to GitHub (8 commits)
+✅ Build successful and tested
+✅ Comprehensive documentation (10 files)
 
-MY PREFERENCES (Always Follow):
-1. Always explain what you understand before implementing
-2. Show token usage regularly
-3. I'm a PM (non-technical), so guide me step-by-step
-4. Keep updating README for next session if we run out of tokens
-5. I have GitHub, Supabase MCP, and Netlify account integrated
+📊 DEPLOYMENT STATUS (User Action Required):
 
-TECH STACK:
-- Frontend: React 18 + Next.js 14 + Tailwind CSS
-- Backend: Next.js API Routes + Supabase (PostgreSQL)
+Check with user first:
+[ ] Database setup in Supabase - User needs to run: supabase/setup.sql (5 min)
+[ ] Netlify connected & deployed - User needs to follow: COMPLETE_DEPLOYMENT_NOW.md (5 min)
+
+If user hasn't deployed yet: Help them deploy following COMPLETE_DEPLOYMENT_NOW.md
+If user has deployed: Test the live site first before building new features!
+
+🎯 WHAT I NEED NOW (Session 2 - Phase 3):
+
+**Campaign Management Dashboard** (Priority 1)
+
+Build a dashboard page to manage multiple campaigns:
+1. Dashboard page at /dashboard
+   - List all campaigns in card/grid view
+   - Show campaign metadata (date, status, step count)
+   - Create new campaign button
+   - Load campaign button
+
+2. Campaign Card Component
+   - Thumbnail preview
+   - Campaign name
+   - Status indicator (draft/active/paused)
+   - Quick actions (edit, duplicate, delete)
+   - Last modified date
+
+3. Campaign Actions
+   - Edit campaign name inline
+   - Duplicate campaign
+   - Delete campaign (with confirmation)
+   - Archive campaign
+
+4. Integration with FlowBuilder
+   - Add URL parameter support (?campaign=id)
+   - Load campaign automatically from URL
+   - Navigate between dashboard and builder
+
+📌 IMPORTANT IMPLEMENTATION NOTES:
+
+- FlowBuilder.js already has saveCampaign() and loadCampaign() functions working
+- API endpoints exist: GET/POST/PUT/DELETE /api/campaigns and /api/campaigns/[id]
+- Database tables are ready (once user runs setup.sql)
+- Just need to build the UI layer for campaign management
+
+✋ MY PREFERENCES (Always Follow):
+
+1. ⚠️ CRITICAL: Always explain what you understand BEFORE implementing
+2. Show token usage regularly (budget wisely)
+3. I'm a PM (non-technical) - guide me step-by-step
+4. Read HANDOFF_TO_NEXT_CLAUDE.md thoroughly before starting
+5. Test existing features before building new ones
+6. Update README/handoff docs for next session if tokens run low
+
+💻 TECH STACK:
+
+- Frontend: React 18 + Next.js 14 (Pages Router) + Tailwind CSS
+- Backend: Next.js API Routes
+- Database: Supabase (PostgreSQL)
+- Storage: Supabase Storage (for videos)
 - Deployment: Netlify
-- Repo: https://github.com/anup1969/int-video
+- GitHub: https://github.com/anup1969/int-video
 
-CREDENTIALS:
+🔑 CREDENTIALS (Full details in project instructions.txt):
+
 - Supabase URL: https://uwzzdxroqqynmqkmwlpk.supabase.co
-- Supabase Anon Key: (in project instructions.txt)
-- Netlify site: gtintvideo
+- Supabase Anon Key: [in project instructions.txt]
+- Supabase Service Role Key: [in project instructions.txt]
+- Netlify site name: gtintvideo
+- GitHub repo: anup1969/int-video
 
-Ready to continue building?
+📁 KEY FILES YOU'LL WORK WITH:
+
+Currently Working:
+- components/builder/FlowBuilder.js (save/load integrated)
+- components/builder/Header.js (save button with status)
+- components/builder/VideoUpload.js (video upload)
+- pages/api/campaigns/* (all API routes)
+
+Need to Create:
+- pages/dashboard.js (main dashboard page)
+- components/dashboard/CampaignCard.js (campaign cards)
+- components/dashboard/CampaignGrid.js (grid layout)
+
+🎯 SESSION 2 ESTIMATED TOKEN USAGE:
+
+Campaign Management Dashboard: ~30,000-40,000 tokens
+Testing & Bug Fixes: ~5,000 tokens
+Documentation Updates: ~5,000 tokens
+Total: ~40,000-50,000 tokens
+
+📊 TOKEN USAGE SESSION 1: 136,500 / 200,000 (68.25%)
+
+🚀 READY TO START?
+
+First, ask me:
+1. "Have you deployed the site to Netlify yet?"
+2. "Have you run the database setup in Supabase?"
+3. "Can you test save/load on the live site?"
+
+Then proceed based on my answers!
 
 ===== COPY EVERYTHING ABOVE THIS LINE =====
 
-ADDITIONAL INFO IF NEEDED:
-- This project is cloning VideoAsk (interactive video platform)
-- Original prototype screenshots in: C:\Users\PCS\OneDrive\Desktop\int video claude code\
-- Latest HTML version: flow-builder-v4-enhanced (3).html
-- We converted HTML to React/Next.js in Session 1
-- Token usage Session 1: 114,500 / 200,000 (57.25%)
+QUICK REFERENCE LINKS:
+- Deployment Guide: COMPLETE_DEPLOYMENT_NOW.md
+- Database Setup: supabase/DATABASE_SETUP.md
+- API Docs: See SESSION_SUMMARY.md
+- Complete Handoff: HANDOFF_TO_NEXT_CLAUDE.md
