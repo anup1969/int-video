@@ -13,12 +13,6 @@ import PreviewModal from './PreviewModal';
 import ZoomControls from './ZoomControls';
 
 export default function FlowBuilder() {
-  // Campaign & Save State
-  const [campaignId, setCampaignId] = useState(null);
-  const [campaignName, setCampaignName] = useState('Untitled Campaign');
-  const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved, error
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
   // State management
   const [nodes, setNodes] = useState([
     {
@@ -71,158 +65,14 @@ export default function FlowBuilder() {
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const autoSaveTimerRef = useRef(null);
 
-  // Save Campaign Function
-  const saveCampaign = async () => {
-    try {
-      setSaveStatus('saving');
-
-      // If no campaign ID, create new campaign first
-      if (!campaignId) {
-        const createRes = await fetch('/api/campaigns', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            name: campaignName,
-            status: 'draft'
-          })
-        });
-
-        if (!createRes.ok) throw new Error('Failed to create campaign');
-        
-        const { campaign } = await createRes.json();
-        setCampaignId(campaign.id);
-        
-        // Save the campaign state
-        await saveCampaignState(campaign.id);
-      } else {
-        // Update existing campaign
-        await saveCampaignState(campaignId);
-      }
-
-      setSaveStatus('saved');
-      setHasUnsavedChanges(false);
-      
-      // Reset to idle after 2 seconds
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (error) {
-      console.error('Save error:', error);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    }
+  // Zoom handlers
+  const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.1, 2));
+  const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.1, 0.3));
+  const handleZoomReset = () => {
+    setScale(1);
+    setPanPosition({ x: 0, y: 0 });
   };
-
-  const saveCampaignState = async (id) => {
-    const response = await fetch(`/api/campaigns/${id}/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nodes: nodes.filter(n => n.type === 'video'), // Don't save start node
-        connections,
-        settings: { name: campaignName }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to save campaign state');
-    }
-
-    return response.json();
-  };
-
-  // Load Campaign Function
-  const loadCampaign = async (id) => {
-    try {
-      const response = await fetch(`/api/campaigns/${id}`);
-      
-      if (!response.ok) throw new Error('Failed to load campaign');
-      
-      const { campaign, steps, connections: loadedConnections } = await response.json();
-
-      // Set campaign info
-      setCampaignId(campaign.id);
-      setCampaignName(campaign.name);
-
-      // Convert steps to nodes
-      const loadedNodes = [
-        {
-          id: 'start',
-          type: 'start',
-          position: { x: 100, y: 250 },
-          label: '▶️ Start Campaign',
-        },
-        ...steps.map(step => ({
-          id: step.id,
-          type: 'video',
-          position: step.position,
-          stepNumber: step.step_number,
-          label: step.label,
-          answerType: step.answer_type,
-          logicRules: step.logic_rules || [],
-          videoUrl: step.video_url,
-          videoThumbnail: step.video_thumbnail,
-          videoPlaceholder: step.video_placeholder || '🎬',
-          mcOptions: step.mc_options || [],
-          buttonOptions: step.button_options || [],
-          enabledResponseTypes: step.enabled_response_types || { video: true, audio: true, text: true },
-          showContactForm: step.show_contact_form || false,
-          contactFormFields: step.contact_form_fields || defaultContactFormFields,
-        }))
-      ];
-
-      // Convert connections
-      const formattedConnections = loadedConnections.map(conn => ({
-        from: conn.from_step_id,
-        to: conn.to_step_id,
-        type: conn.connection_type
-      }));
-
-      setNodes(loadedNodes);
-      setConnections(formattedConnections);
-      setHasUnsavedChanges(false);
-      
-      console.log(`✅ Loaded campaign: ${campaign.name}`);
-    } catch (error) {
-      console.error('Load error:', error);
-      alert('Failed to load campaign');
-    }
-  };
-
-  // Auto-save effect
-  useEffect(() => {
-    // Don't auto-save if no campaign ID yet
-    if (!campaignId) return;
-    
-    // Don't auto-save if no changes
-    if (!hasUnsavedChanges) return;
-
-    // Clear existing timer
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-
-    // Set new timer for 30 seconds
-    autoSaveTimerRef.current = setTimeout(() => {
-      console.log('🔄 Auto-saving...');
-      saveCampaign();
-    }, 30000); // 30 seconds
-
-    // Cleanup
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [nodes, connections, campaignId, hasUnsavedChanges]);
-
-  // Mark as having unsaved changes when nodes or connections change
-  useEffect(() => {
-    if (campaignId) {
-      setHasUnsavedChanges(true);
-    }
-  }, [nodes, connections]);
-
 
   // Pan handlers
   const handleCanvasMouseDown = (e) => {
@@ -631,7 +481,7 @@ export default function FlowBuilder() {
       />
 
       <div className="flex-1 flex flex-col">
-        <Header campaignName={campaignName} scale={scale} onSave={saveCampaign} saveStatus={saveStatus} hasUnsavedChanges={hasUnsavedChanges} />
+        <Header campaignName="Untitled Campaign" scale={scale} />
 
         <div
           ref={containerRef}

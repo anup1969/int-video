@@ -1,3 +1,4 @@
+import VideoUpload from "./VideoUpload";
 import { answerTypes } from '../../lib/utils/constants';
 
 export default function EditModal({
@@ -128,14 +129,10 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
           placeholder="e.g., Welcome Video"
         />
       </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Video</label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-violet-400 cursor-pointer transition">
-          <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
-          <p className="text-sm text-gray-600 font-medium">Click to upload or drag video here</p>
-          <p className="text-xs text-gray-400 mt-1">MP4, MOV, WebM up to 500MB</p>
-        </div>
+      <VideoUpload
+        currentVideoUrl={editingStep.videoUrl}
+        onVideoUploaded={(url) => setEditingStep({ ...editingStep, videoUrl: url })}
+      />
       </div>
 
       <div className="bg-gray-50 p-4 rounded-lg">
