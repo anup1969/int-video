@@ -218,11 +218,20 @@ export default function FlowBuilder() {
 
   // Mark as having unsaved changes when nodes or connections change
   useEffect(() => {
+
     if (campaignId) {
       setHasUnsavedChanges(true);
     }
   }, [nodes, connections]);
 
+
+  // Zoom handlers
+  const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.1, 2));
+  const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.1, 0.3));
+  const handleZoomReset = () => {
+    setScale(1);
+    setPanPosition({ x: 0, y: 0 });
+  };
 
   // Pan handlers
   const handleCanvasMouseDown = (e) => {

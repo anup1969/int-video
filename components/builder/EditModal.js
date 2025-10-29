@@ -133,7 +133,6 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
         currentVideoUrl={editingStep.videoUrl}
         onVideoUploaded={(url) => setEditingStep({ ...editingStep, videoUrl: url })}
       />
-      </div>
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <label className="flex items-center gap-2 cursor-pointer">
