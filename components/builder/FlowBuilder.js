@@ -19,6 +19,9 @@ export default function FlowBuilder() {
   const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved, error
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // UI State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   // State management
   const [nodes, setNodes] = useState([
     {
@@ -231,6 +234,11 @@ export default function FlowBuilder() {
   const handleZoomReset = () => {
     setScale(1);
     setPanPosition({ x: 0, y: 0 });
+  };
+
+  // Sidebar toggle handler
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => !prev);
   };
 
   // Pan handlers
@@ -637,6 +645,8 @@ export default function FlowBuilder() {
           setPreviewStep(0);
         }}
         onSidebarDragStart={handleSidebarDragStart}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
       />
 
       <div className="flex-1 flex flex-col">
