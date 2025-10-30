@@ -10,6 +10,7 @@ export default function EditModal({
   nodes,
   onSave,
   onClose,
+  onAnswerTypeChange,
   onResponseTypeToggle,
   addMCOption,
   updateMCOption,
@@ -225,10 +226,7 @@ function AnswerTab({
           {answerTypes.map((type) => (
             <button
               key={type.id}
-              onClick={() => {
-                // This will be handled by parent component
-                setEditingStep({ ...editingStep, answerType: type.id });
-              }}
+              onClick={() => onAnswerTypeChange(type.id)}
               className={`p-3 border-2 rounded-lg text-left transition ${
                 editingStep.answerType === type.id
                   ? 'border-violet-500 bg-violet-50'

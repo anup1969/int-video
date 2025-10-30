@@ -345,11 +345,29 @@ export default function FlowBuilder() {
   const handleEditNode = (nodeId) => {
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
+      // Ensure logic rules are up-to-date with current answer type and options
+      let logicRules = node.logicRules || [];
+
+      // Regenerate logic rules if they're empty or outdated
+      if (logicRules.length === 0 || !node.logicRules) {
+        const mcOptions = node.mcOptions || [];
+        const buttonOptions = node.buttonOptions || [{ text: 'Continue', target: '', targetType: 'node' }];
+        const enabledResponseTypes = node.enabledResponseTypes || { video: true, audio: true, text: true };
+
+        if (node.answerType === 'multiple-choice') {
+          logicRules = updateLogicRulesForAnswerType('multiple-choice', mcOptions, [], enabledResponseTypes);
+        } else if (node.answerType === 'button') {
+          logicRules = updateLogicRulesForAnswerType('button', [], buttonOptions, enabledResponseTypes);
+        } else {
+          logicRules = getDefaultLogicRules(node.answerType, enabledResponseTypes);
+        }
+      }
+
       setEditingStep({
         id: nodeId,
         label: node.label,
         answerType: node.answerType,
-        logicRules: node.logicRules || [],
+        logicRules: logicRules,
         videoUrl: node.videoUrl || '',
         mcOptions: node.mcOptions || [],
         buttonOptions: node.buttonOptions || [{ text: 'Continue', target: '', targetType: 'node' }],
@@ -472,6 +490,36 @@ export default function FlowBuilder() {
     const newRules = [...editingStep.logicRules];
     newRules[index][field] = value;
     setEditingStep({ ...editingStep, logicRules: newRules });
+  };
+
+  // Answer Type Change Handler
+  const handleAnswerTypeChange = (newAnswerType) => {
+    // Calculate new logic rules based on the new answer type
+    let newLogicRules;
+
+    if (newAnswerType === 'multiple-choice') {
+      newLogicRules = updateLogicRulesForAnswerType(
+        newAnswerType,
+        editingStep.mcOptions || ['Option A', 'Option B'],
+        [],
+        editingStep.enabledResponseTypes
+      );
+    } else if (newAnswerType === 'button') {
+      newLogicRules = updateLogicRulesForAnswerType(
+        newAnswerType,
+        [],
+        editingStep.buttonOptions || [{ text: 'Continue', target: '', targetType: 'node' }],
+        editingStep.enabledResponseTypes
+      );
+    } else {
+      newLogicRules = getDefaultLogicRules(newAnswerType, editingStep.enabledResponseTypes);
+    }
+
+    setEditingStep({
+      ...editingStep,
+      answerType: newAnswerType,
+      logicRules: newLogicRules,
+    });
   };
 
   // Multiple Choice handlers
@@ -745,6 +793,7 @@ export default function FlowBuilder() {
         nodes={nodes}
         onSave={handleSaveEdit}
         onClose={() => setShowEditModal(false)}
+        onAnswerTypeChange={handleAnswerTypeChange}
         onResponseTypeToggle={handleResponseTypeToggle}
         addMCOption={addMCOption}
         updateMCOption={updateMCOption}
