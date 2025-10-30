@@ -25,22 +25,58 @@ export default function VideoUpload({ onVideoUploaded, currentVideoUrl }) {
     setProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append('video', file);
-
-      const response = await fetch('/api/upload/video', {
+      // Step 1: Get signed upload URL from our API
+      setProgress(10);
+      const urlResponse = await fetch('/api/upload/video', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      if (!urlResponse.ok) {
+        const error = await urlResponse.json();
+        throw new Error(error.error || 'Failed to get upload URL');
       }
 
-      const { url } = await response.json();
+      const { signedUrl, publicUrl } = await urlResponse.json();
+
+      // Step 2: Upload directly to Supabase Storage using signed URL
+      setProgress(30);
+
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = 30 + Math.round((e.loaded / e.total) * 60);
+          setProgress(percentComplete);
+        }
+      });
+
+      // Handle upload completion
+      await new Promise((resolve, reject) => {
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
+        });
+
+        xhr.open('PUT', signedUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.send(file);
+      });
 
       setProgress(100);
-      onVideoUploaded(url);
+      onVideoUploaded(publicUrl);
 
       setTimeout(() => {
         setUploading(false);
@@ -48,7 +84,7 @@ export default function VideoUpload({ onVideoUploaded, currentVideoUrl }) {
       }, 1000);
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload video. Please try again.');
+      alert(`Failed to upload video: ${error.message}`);
       setUploading(false);
       setProgress(0);
     }

@@ -1,13 +1,6 @@
-// API route for video upload to Supabase Storage
+// API route to generate signed upload URL for Supabase Storage
+// This approach uploads directly from browser to Supabase, bypassing server
 import { createClient } from '@supabase/supabase-js'
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '500mb',
-    },
-  },
-}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,74 +13,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get content type
-    const contentType = req.headers['content-type'] || ''
+    const { fileName, fileType } = req.body
 
-    if (!contentType.includes('multipart/form-data')) {
-      return res.status(400).json({ error: 'Invalid content type. Expected multipart/form-data' })
-    }
-
-    // Parse multipart form data manually
-    const boundary = contentType.split('boundary=')[1]
-    if (!boundary) {
-      return res.status(400).json({ error: 'No boundary found in multipart data' })
-    }
-
-    // Collect request body
-    const chunks = []
-    for await (const chunk of req) {
-      chunks.push(chunk)
-    }
-    const buffer = Buffer.concat(chunks)
-
-    // Parse multipart data
-    const boundaryBuffer = Buffer.from(`--${boundary}`)
-    const parts = []
-    let start = 0
-
-    while (start < buffer.length) {
-      const boundaryIndex = buffer.indexOf(boundaryBuffer, start)
-      if (boundaryIndex === -1) break
-
-      const nextBoundaryIndex = buffer.indexOf(boundaryBuffer, boundaryIndex + boundaryBuffer.length)
-      if (nextBoundaryIndex === -1) break
-
-      const part = buffer.slice(boundaryIndex + boundaryBuffer.length, nextBoundaryIndex)
-      parts.push(part)
-      start = nextBoundaryIndex
-    }
-
-    // Find the video file part
-    let videoBuffer = null
-    let fileName = 'video.mp4'
-    let mimeType = 'video/mp4'
-
-    for (const part of parts) {
-      const headerEnd = part.indexOf(Buffer.from('\r\n\r\n'))
-      if (headerEnd === -1) continue
-
-      const headers = part.slice(0, headerEnd).toString()
-      const body = part.slice(headerEnd + 4, part.length - 2) // Remove trailing \r\n
-
-      // Check if this is the video file
-      if (headers.includes('name="video"') && headers.includes('filename=')) {
-        const fileNameMatch = headers.match(/filename="([^"]+)"/)
-        if (fileNameMatch) {
-          fileName = fileNameMatch[1]
-        }
-
-        const contentTypeMatch = headers.match(/Content-Type:\s*([^\r\n]+)/)
-        if (contentTypeMatch) {
-          mimeType = contentTypeMatch[1].trim()
-        }
-
-        videoBuffer = body
-        break
-      }
-    }
-
-    if (!videoBuffer || videoBuffer.length === 0) {
-      return res.status(400).json({ error: 'No video file found in request' })
+    if (!fileName) {
+      return res.status(400).json({ error: 'File name is required' })
     }
 
     // Generate unique filename
@@ -95,32 +24,32 @@ export default async function handler(req, res) {
     const uniqueFileName = `${timestamp}-${fileName}`
     const filePath = `videos/${uniqueFileName}`
 
-    // Upload to Supabase Storage
+    // Create a signed upload URL (valid for 60 seconds)
     const { data, error } = await supabase.storage
       .from('videos')
-      .upload(filePath, videoBuffer, {
-        contentType: mimeType,
-        upsert: false,
-      })
+      .createSignedUploadUrl(filePath)
 
     if (error) {
-      console.error('Supabase storage error:', error)
+      console.error('Signed URL error:', error)
       return res.status(500).json({ error: error.message })
     }
 
-    // Get public URL
+    // Get the public URL for later use
     const { data: urlData } = supabase.storage
       .from('videos')
       .getPublicUrl(filePath)
 
     return res.status(200).json({
       success: true,
-      url: urlData.publicUrl,
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path: data.path,
+      publicUrl: urlData.publicUrl,
       fileName: uniqueFileName,
     })
 
   } catch (error) {
-    console.error('Upload error:', error)
-    return res.status(500).json({ error: error.message || 'Failed to upload video' })
+    console.error('Server error:', error)
+    return res.status(500).json({ error: error.message || 'Failed to generate upload URL' })
   }
 }
