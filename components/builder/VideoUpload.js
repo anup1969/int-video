@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function VideoUpload({ onVideoUploaded, currentVideoUrl }) {
   const [uploading, setUploading] = useState(false);
@@ -25,58 +31,37 @@ export default function VideoUpload({ onVideoUploaded, currentVideoUrl }) {
     setProgress(0);
 
     try {
-      // Step 1: Get signed upload URL from our API
-      setProgress(10);
-      const urlResponse = await fetch('/api/upload/video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-        }),
-      });
+      // Generate unique filename
+      const timestamp = Date.now();
+      const fileName = `${timestamp}-${file.name}`;
+      const filePath = `videos/${fileName}`;
 
-      if (!urlResponse.ok) {
-        const error = await urlResponse.json();
-        throw new Error(error.error || 'Failed to get upload URL');
-      }
+      setProgress(20);
 
-      const { signedUrl, publicUrl } = await urlResponse.json();
-
-      // Step 2: Upload directly to Supabase Storage using signed URL
-      setProgress(30);
-
-      const xhr = new XMLHttpRequest();
-
-      // Track upload progress
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const percentComplete = 30 + Math.round((e.loaded / e.total) * 60);
-          setProgress(percentComplete);
-        }
-      });
-
-      // Handle upload completion
-      await new Promise((resolve, reject) => {
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+      // Upload directly to Supabase from browser
+      const { data, error } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 80) / progressEvent.total) + 20;
+            setProgress(percentCompleted);
           }
         });
 
-        xhr.addEventListener('error', () => {
-          reject(new Error('Network error during upload'));
-        });
+      if (error) {
+        console.error('Supabase upload error:', error);
+        throw new Error(error.message);
+      }
 
-        xhr.open('PUT', signedUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.send(file);
-      });
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath);
 
       setProgress(100);
-      onVideoUploaded(publicUrl);
+      onVideoUploaded(urlData.publicUrl);
 
       setTimeout(() => {
         setUploading(false);
