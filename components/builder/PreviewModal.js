@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { answerTypes } from '../../lib/utils/constants';
 
 export default function PreviewModal({
@@ -11,9 +12,27 @@ export default function PreviewModal({
   onPrev,
   onReset,
 }) {
+  const [showResponseUI, setShowResponseUI] = useState(null); // 'video', 'audio', or 'text'
+  const [textResponse, setTextResponse] = useState('');
+
   if (!show) return null;
 
   const currentStep = steps[previewStep];
+
+  const handleResponseClick = (type) => {
+    setShowResponseUI(type);
+  };
+
+  const handleSubmitResponse = () => {
+    setShowResponseUI(null);
+    setTextResponse('');
+    onNext();
+  };
+
+  const handleCancelResponse = () => {
+    setShowResponseUI(null);
+    setTextResponse('');
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -95,32 +114,78 @@ export default function PreviewModal({
                         </button>
                       ))}
                     {currentStep.answerType === 'open-ended' && (
-                      <div className="flex gap-2 justify-center">
-                        {currentStep.enabledResponseTypes?.video && (
-                          <button
-                            onClick={onNext}
-                            className="flex-1 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-                          >
-                            📹 Video
-                          </button>
+                      <>
+                        {!showResponseUI ? (
+                          <div className="flex gap-2 justify-center">
+                            {currentStep.enabledResponseTypes?.video && (
+                              <button
+                                onClick={() => handleResponseClick('video')}
+                                className="flex-1 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                              >
+                                📹 Video
+                              </button>
+                            )}
+                            {currentStep.enabledResponseTypes?.audio && (
+                              <button
+                                onClick={() => handleResponseClick('audio')}
+                                className="flex-1 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                              >
+                                🎤 Audio
+                              </button>
+                            )}
+                            {currentStep.enabledResponseTypes?.text && (
+                              <button
+                                onClick={() => handleResponseClick('text')}
+                                className="flex-1 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                              >
+                                📝 Text
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {showResponseUI === 'video' && (
+                              <div className="bg-gray-800 rounded-lg p-8 text-center text-white">
+                                <i className="fas fa-video text-4xl mb-3"></i>
+                                <p className="mb-4">Video recording interface would appear here</p>
+                                <div className="text-sm text-gray-400">In production, this would access the camera</div>
+                              </div>
+                            )}
+                            {showResponseUI === 'audio' && (
+                              <div className="bg-gray-800 rounded-lg p-8 text-center text-white">
+                                <i className="fas fa-microphone text-4xl mb-3"></i>
+                                <p className="mb-4">Audio recording interface would appear here</p>
+                                <div className="text-sm text-gray-400">In production, this would access the microphone</div>
+                              </div>
+                            )}
+                            {showResponseUI === 'text' && (
+                              <div>
+                                <textarea
+                                  value={textResponse}
+                                  onChange={(e) => setTextResponse(e.target.value)}
+                                  placeholder="Type your response here..."
+                                  className="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-violet-500 focus:outline-none"
+                                  rows="4"
+                                />
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleCancelResponse}
+                                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleSubmitResponse}
+                                className="flex-1 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition"
+                              >
+                                Submit & Continue
+                              </button>
+                            </div>
+                          </div>
                         )}
-                        {currentStep.enabledResponseTypes?.audio && (
-                          <button
-                            onClick={onNext}
-                            className="flex-1 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-                          >
-                            🎤 Audio
-                          </button>
-                        )}
-                        {currentStep.enabledResponseTypes?.text && (
-                          <button
-                            onClick={onNext}
-                            className="flex-1 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-                          >
-                            📝 Text
-                          </button>
-                        )}
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>
