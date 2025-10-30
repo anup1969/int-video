@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import {
   answerTypes,
   getDefaultLogicRules,
@@ -13,6 +14,7 @@ import PreviewModal from './PreviewModal';
 import ZoomControls from './ZoomControls';
 
 export default function FlowBuilder() {
+  const router = useRouter();
   // Campaign & Save State
   const [campaignId, setCampaignId] = useState(null);
   const [campaignName, setCampaignName] = useState('Untitled Campaign');
@@ -75,6 +77,35 @@ export default function FlowBuilder() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const autoSaveTimerRef = useRef(null);
+
+  // Load campaign from URL on mount
+  useEffect(() => {
+    const loadCampaignFromURL = async () => {
+      const { id } = router.query;
+      if (!id) return;
+
+      try {
+        const response = await fetch(`/api/campaigns/${id}`);
+        if (response.ok) {
+          const { campaign } = await response.json();
+          setCampaignId(campaign.id);
+          setCampaignName(campaign.name);
+
+          // Load campaign data if exists
+          if (campaign.data) {
+            setNodes(campaign.data.nodes || nodes);
+            setConnections(campaign.data.connections || connections);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load campaign:', error);
+      }
+    };
+
+    if (router.isReady) {
+      loadCampaignFromURL();
+    }
+  }, [router.isReady, router.query]);
 
   // Save Campaign Function
   const saveCampaign = async () => {
