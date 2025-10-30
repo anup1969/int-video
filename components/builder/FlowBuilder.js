@@ -764,6 +764,8 @@ export default function FlowBuilder() {
         setPreviewMode={setPreviewMode}
         previewStep={previewStep}
         steps={getPreviewSteps()}
+        nodes={nodes}
+        connections={connections}
         onClose={() => setShowPreviewModal(false)}
         onNext={handlePreviewNext}
         onPrev={handlePreviewPrev}

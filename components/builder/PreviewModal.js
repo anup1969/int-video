@@ -7,6 +7,8 @@ export default function PreviewModal({
   setPreviewMode,
   previewStep,
   steps,
+  nodes,
+  connections,
   onClose,
   onNext,
   onPrev,
@@ -14,18 +16,51 @@ export default function PreviewModal({
 }) {
   const [showResponseUI, setShowResponseUI] = useState(null); // 'video', 'audio', or 'text'
   const [textResponse, setTextResponse] = useState('');
+  const [selectedOption, setSelectedOption] = useState(null);
 
   if (!show) return null;
 
   const currentStep = steps[previewStep];
+  const currentNode = nodes.find(n => n.stepNumber === currentStep?.stepNumber);
 
   const handleResponseClick = (type) => {
     setShowResponseUI(type);
   };
 
-  const handleSubmitResponse = () => {
+  const handleSubmitResponse = (responseType = null) => {
+    // Check if there are logic rules to follow
+    if (currentNode?.logicRules && currentNode.logicRules.length > 0) {
+      // Find matching logic rule based on the response
+      const matchingRule = currentNode.logicRules.find(rule => {
+        if (responseType && rule.condition === 'response_type') {
+          return rule.value === responseType;
+        }
+        if (selectedOption && rule.condition === 'answer_equals') {
+          return rule.value === selectedOption;
+        }
+        return false;
+      });
+
+      if (matchingRule && matchingRule.action === 'go_to_step') {
+        // Find the target step index
+        const targetStepIndex = steps.findIndex(s => s.id === matchingRule.targetStep);
+        if (targetStepIndex !== -1) {
+          // Jump to that step
+          setShowResponseUI(null);
+          setTextResponse('');
+          setSelectedOption(null);
+          onReset(); // Reset to start, then we'd need to navigate to specific step
+          // For now, just go to next as we'd need to modify FlowBuilder to support direct step navigation
+          onNext();
+          return;
+        }
+      }
+    }
+
+    // Default behavior: go to next step
     setShowResponseUI(null);
     setTextResponse('');
+    setSelectedOption(null);
     onNext();
   };
 
@@ -177,7 +212,7 @@ export default function PreviewModal({
                                 Cancel
                               </button>
                               <button
-                                onClick={handleSubmitResponse}
+                                onClick={() => handleSubmitResponse(showResponseUI)}
                                 className="flex-1 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition"
                               >
                                 Submit & Continue
