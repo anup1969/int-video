@@ -2,15 +2,17 @@ import { answerTypes } from '../../lib/utils/constants';
 
 export default function Sidebar({ onAddStep, onPreview, onSidebarDragStart, isCollapsed, onToggleCollapse }) {
   return (
-    <div className={`${isCollapsed ? 'w-0' : 'w-72'} bg-white border-r border-gray-200 flex flex-col shadow-lg z-10 transition-all duration-300 ease-in-out overflow-hidden relative`}>
-      {/* Toggle Button */}
+    <>
+      {/* Toggle Button - Always visible */}
       <button
         onClick={onToggleCollapse}
-        className="absolute -right-4 top-6 w-8 h-8 bg-violet-600 text-white rounded-full shadow-lg hover:bg-violet-700 transition flex items-center justify-center z-20"
+        className={`fixed ${isCollapsed ? 'left-2' : 'left-[17rem]'} top-6 w-10 h-10 bg-violet-600 text-white rounded-full shadow-xl hover:bg-violet-700 transition-all duration-300 flex items-center justify-center z-50`}
         title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'left'} text-xs`}></i>
+        <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'left'}`}></i>
       </button>
+
+      <div className={`${isCollapsed ? 'w-0' : 'w-72'} bg-white border-r border-gray-200 flex flex-col shadow-lg z-10 transition-all duration-300 ease-in-out overflow-hidden relative`}>
 
       <div className="p-6 border-b border-gray-200">
         <h1 className="text-xl font-bold text-gray-800 mb-1">Campaign Builder v4</h1>
@@ -51,6 +53,7 @@ export default function Sidebar({ onAddStep, onPreview, onSidebarDragStart, isCo
           <i className="fas fa-eye mr-2"></i> Preview Campaign
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
