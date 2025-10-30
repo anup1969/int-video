@@ -74,6 +74,7 @@ export default function EditModal({
             <AnswerTab
               editingStep={editingStep}
               setEditingStep={setEditingStep}
+              onAnswerTypeChange={onAnswerTypeChange}
               onResponseTypeToggle={onResponseTypeToggle}
               addMCOption={addMCOption}
               updateMCOption={updateMCOption}
@@ -207,6 +208,7 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
 function AnswerTab({
   editingStep,
   setEditingStep,
+  onAnswerTypeChange,
   onResponseTypeToggle,
   addMCOption,
   updateMCOption,
@@ -518,8 +520,45 @@ function LogicTab({ editingStep, nodes, updateLogicRule }) {
               )}
 
               {rule.targetType === 'end' && (
-                <div className="bg-gray-50 p-3 rounded text-xs text-gray-600">
-                  Campaign will end and show thank you screen
+                <div className="space-y-3">
+                  <div className="bg-gray-50 p-3 rounded text-xs text-gray-600 mb-2">
+                    Campaign will end with a custom message and optional CTA
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 mb-1 block">Thank you message:</label>
+                    <textarea
+                      value={rule.endMessage || 'Thank you for your response!'}
+                      onChange={(e) => updateLogicRule(idx, 'endMessage', e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500"
+                      rows="2"
+                      placeholder="Thank you for your response!"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 mb-1 block">CTA Button Text (optional):</label>
+                    <input
+                      type="text"
+                      value={rule.ctaText || ''}
+                      onChange={(e) => {
+                        updateLogicRule(idx, 'ctaText', e.target.value);
+                        updateLogicRule(idx, 'target', 'end_campaign');
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500"
+                      placeholder="e.g., Visit Our Website"
+                    />
+                  </div>
+                  {rule.ctaText && (
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block">CTA Button URL:</label>
+                      <input
+                        type="url"
+                        value={rule.ctaUrl || ''}
+                        onChange={(e) => updateLogicRule(idx, 'ctaUrl', e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500"
+                        placeholder="https://example.com"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

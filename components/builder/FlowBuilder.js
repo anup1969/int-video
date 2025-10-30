@@ -698,7 +698,7 @@ export default function FlowBuilder() {
       />
 
       <div className="flex-1 flex flex-col">
-        <Header campaignName={campaignName} scale={scale} onSave={saveCampaign} saveStatus={saveStatus} hasUnsavedChanges={hasUnsavedChanges} />
+        <Header campaignName={campaignName} scale={scale} onSave={saveCampaign} saveStatus={saveStatus} hasUnsavedChanges={hasUnsavedChanges} campaignId={campaignId} />
 
         <div
           ref={containerRef}

@@ -128,26 +128,103 @@ export default function PreviewModal({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    {currentStep.answerType === 'multiple-choice' &&
-                      currentStep.mcOptions?.map((opt, idx) => (
-                        <button
-                          key={idx}
-                          onClick={onNext}
-                          className="w-full px-4 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    {currentStep.answerType === 'button' &&
-                      currentStep.buttonOptions?.map((btn, idx) => (
-                        <button
-                          key={idx}
-                          onClick={onNext}
-                          className="w-full px-4 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
-                        >
-                          {btn.text}
-                        </button>
-                      ))}
+                    {/* Multiple Choice */}
+                    {currentStep.answerType === 'multiple-choice' && (
+                      <>
+                        {currentStep.mcOptions && currentStep.mcOptions.length > 0 ? (
+                          currentStep.mcOptions.map((opt, idx) => (
+                            <button
+                              key={idx}
+                              onClick={onNext}
+                              className="w-full px-4 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
+                            >
+                              {opt}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="text-center text-gray-500 py-4">No options configured</div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Button/CTA */}
+                    {currentStep.answerType === 'button' && (
+                      <>
+                        {currentStep.buttonOptions && currentStep.buttonOptions.length > 0 ? (
+                          currentStep.buttonOptions.map((btn, idx) => (
+                            <button
+                              key={idx}
+                              onClick={onNext}
+                              className="w-full px-4 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
+                            >
+                              {btn.text}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="text-center text-gray-500 py-4">No buttons configured</div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Contact Form */}
+                    {currentStep.answerType === 'contact-form' && (
+                      <div className="space-y-3">
+                        {currentStep.contactFormFields && currentStep.contactFormFields.length > 0 ? (
+                          <>
+                            {currentStep.contactFormFields
+                              .filter(field => field.enabled)
+                              .map((field, idx) => (
+                                <div key={field.id || idx}>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    {field.label}
+                                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                                  </label>
+                                  <input
+                                    type={field.type}
+                                    required={field.required}
+                                    placeholder={`Enter ${field.label.toLowerCase()}`}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                  />
+                                </div>
+                              ))}
+                            <button
+                              onClick={onNext}
+                              className="w-full px-4 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
+                            >
+                              Submit
+                            </button>
+                          </>
+                        ) : (
+                          <div className="text-center text-gray-500 py-4">No form fields configured</div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* NPS Scale */}
+                    {currentStep.answerType === 'nps' && (
+                      <div className="space-y-3">
+                        <div className="text-center text-sm text-gray-700 mb-2">
+                          How likely are you to recommend us?
+                        </div>
+                        <div className="flex gap-1 justify-center">
+                          {[...Array(11)].map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={onNext}
+                              className="flex-1 max-w-[50px] py-3 bg-violet-100 hover:bg-violet-600 hover:text-white text-violet-700 rounded-lg font-medium transition text-sm"
+                            >
+                              {i}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Not likely</span>
+                          <span>Very likely</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Open-Ended */}
                     {currentStep.answerType === 'open-ended' && (
                       <>
                         {!showResponseUI ? (

@@ -1,4 +1,4 @@
-export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges }) {
+export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges, campaignId }) {
   const getSaveStatusDisplay = () => {
     switch (saveStatus) {
       case 'saving':
@@ -56,6 +56,14 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
           <i className="fas fa-save mr-2"></i>
           {saveStatus === 'saving' ? 'Saving...' : 'Save'}
         </button>
+        {campaignId && (
+          <button
+            onClick={() => window.open(`/campaign/${campaignId}`, '_blank')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+          >
+            <i className="fas fa-external-link-alt mr-2"></i> View Campaign
+          </button>
+        )}
         <button className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition">
           <i className="fas fa-cog mr-1"></i> Settings
         </button>
