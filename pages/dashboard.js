@@ -30,6 +30,7 @@ export default function Dashboard() {
 
   const handleCreateCampaign = async () => {
     try {
+      console.log('Creating new campaign...');
       const response = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,12 +40,25 @@ export default function Dashboard() {
         })
       });
 
+      console.log('Response status:', response.status);
+
       if (response.ok) {
-        const { campaign } = await response.json();
-        router.push(`/?id=${campaign.id}`);
+        const data = await response.json();
+        console.log('Campaign created:', data);
+        if (data.campaign && data.campaign.id) {
+          router.push(`/?id=${data.campaign.id}`);
+        } else {
+          console.error('No campaign ID in response:', data);
+          alert('Failed to create campaign: No campaign ID returned');
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to create campaign:', errorData);
+        alert(`Failed to create campaign: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to create campaign:', error);
+      alert(`Failed to create campaign: ${error.message}`);
     }
   };
 
@@ -145,7 +159,11 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={handleCreateCampaign}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log('Button clicked!');
+                  handleCreateCampaign();
+                }}
                 className="px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition flex items-center gap-2"
               >
                 <i className="fas fa-plus"></i>
