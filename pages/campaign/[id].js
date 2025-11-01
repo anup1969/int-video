@@ -666,10 +666,37 @@ export default function CampaignViewer() {
             </div>
           </div>
         ) : (
-          <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-            <div className="text-center">
-              <i className="fas fa-play-circle text-6xl text-gray-600 mb-4"></i>
-              <div className="text-xl text-gray-400">No video</div>
+          // No video - show question with dark background
+          <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black flex items-center justify-center relative">
+            {/* Top overlay - Step counter */}
+            <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/60 to-transparent flex items-center justify-between z-20">
+              <div className="text-white text-xs sm:text-sm font-medium bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-md">
+                Step {currentStepIndex + 1} of {steps.length}
+              </div>
+            </div>
+
+            {/* Bottom overlay - Content on dark background */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 bg-gradient-to-t from-black/80 via-black/60 to-transparent z-20 max-h-[70vh] overflow-y-auto">
+              {/* Question Title */}
+              {currentStep.label && (
+                <div className="mb-4 text-center">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white drop-shadow-lg">
+                    {currentStep.label}
+                  </h2>
+                </div>
+              )}
+
+              {/* Answer Type UI - Same as video overlay */}
+              <div className="space-y-3 max-w-2xl mx-auto">
+                {/* Copy all answer type components here... */}
+                {/* For now, just render the same components */}
+                {/* Multiple Choice */}
+                {currentStep.answerType === 'multiple-choice' && currentStep.mcOptions && currentStep.mcOptions.length > 0 && (
+                  currentStep.mcOptions.map((opt, idx) => (
+                    <button key={idx} onClick={() => handleSubmitResponse(null, opt)} className="w-full px-6 py-4 sm:py-5 bg-black/40 hover:bg-violet-600/60 text-white rounded-xl sm:rounded-2xl font-medium transition text-base sm:text-lg backdrop-blur-md border border-white/20">{opt}</button>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}
