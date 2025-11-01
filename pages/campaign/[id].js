@@ -270,176 +270,188 @@ export default function CampaignViewer() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-6 text-white text-center">
-          <h3 className="text-2xl font-bold mb-2">{currentStep.label}</h3>
-          <p className="text-sm opacity-90">
-            Step {currentStepIndex + 1} of {steps.length}
-          </p>
+    <div className="relative w-screen h-screen overflow-hidden bg-black">
+      {/* Fullscreen Video Background */}
+      {currentStep.videoUrl ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted={isMuted}
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src={currentStep.videoUrl}
+        >
+          Your browser does not support the video tag.
+        </video>
+      ) : (
+        <div className="absolute inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
+          <div className="text-center text-gray-400">
+            <i className="fas fa-play-circle text-6xl mb-4"></i>
+            <div className="text-xl">Video placeholder</div>
+          </div>
         </div>
+      )}
 
-        {/* Content */}
-        <div className="p-6">
-          {/* Video Player */}
-          {currentStep.videoUrl ? (
-            <div className="mb-6 rounded-lg overflow-hidden relative">
-              <video
-                ref={videoRef}
-                controls
-                autoPlay
-                muted={isMuted}
-                playsInline
-                className="w-full"
-                src={currentStep.videoUrl}
-              >
-                Your browser does not support the video tag.
-              </video>
-              {/* Unmute Button */}
-              {isMuted && (
-                <button
-                  onClick={handleUnmute}
-                  className="absolute top-4 left-4 bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition backdrop-blur-sm"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                      clipRule="evenodd"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium">Click to Unmute</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="bg-gray-900 rounded-lg p-8 text-center text-sm text-gray-300 mb-6 aspect-video flex items-center justify-center">
-              <div>
-                <i className="fas fa-play-circle text-5xl mb-3"></i>
-                <div className="text-lg">Video placeholder</div>
-              </div>
-            </div>
-          )}
+      {/* Unmute Button - Top Left */}
+      {isMuted && currentStep.videoUrl && (
+        <button
+          onClick={handleUnmute}
+          className="absolute top-4 left-4 sm:top-6 sm:left-6 bg-black/70 hover:bg-black/90 text-white px-3 py-2 sm:px-4 sm:py-3 rounded-lg flex items-center gap-2 transition backdrop-blur-sm z-20 text-sm sm:text-base"
+        >
+          <svg
+            className="w-4 h-4 sm:w-5 sm:h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+              clipRule="evenodd"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+            />
+          </svg>
+          <span className="font-medium">Click to Unmute</span>
+        </button>
+      )}
 
-          {/* Contact Form (if enabled) */}
+      {/* Step Progress - Top Right */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-black/60 backdrop-blur-md text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm z-20">
+        Step {currentStepIndex + 1} of {steps.length}
+      </div>
+
+      {/* Bottom Overlay - Contains all interactive elements */}
+      <div className="absolute bottom-0 left-0 right-0 z-10">
+        {/* Gradient overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none"></div>
+
+        {/* Content Container */}
+        <div className="relative px-4 sm:px-6 md:px-8 lg:px-12 pb-6 sm:pb-8 md:pb-10">
+
+          {/* Step Label / Question */}
+          <div className="text-white text-center mb-4 sm:mb-6">
+            <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">
+              {currentStep.label}
+            </h3>
+          </div>
+
+          {/* Contact Form (if enabled and showing) */}
           {currentStep.showContactForm && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="text-sm font-semibold text-gray-700 mb-3">Contact Information</div>
-              <div className="space-y-3">
-                {currentStep.contactFormFields
-                  ?.filter(field => field.enabled)
-                  .map((field, idx) => (
-                    <div key={field.id || idx}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                      </label>
-                      <input
-                        type={field.type}
-                        required={field.required}
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                      />
-                    </div>
-                  ))}
+            <div className="mb-4 sm:mb-6 mx-auto max-w-md lg:max-w-lg">
+              <div className="bg-black/60 backdrop-blur-md p-4 sm:p-5 rounded-xl">
+                <div className="text-sm font-semibold text-white mb-3">Contact Information</div>
+                <div className="space-y-3">
+                  {currentStep.contactFormFields
+                    ?.filter(field => field.enabled)
+                    .map((field, idx) => (
+                      <div key={field.id || idx}>
+                        <label className="block text-sm font-medium text-white/90 mb-1">
+                          {field.label}
+                          {field.required && <span className="text-red-400 ml-1">*</span>}
+                        </label>
+                        <input
+                          type={field.type}
+                          required={field.required}
+                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                          className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-white/50"
+                        />
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
           )}
 
           {/* Answer Type UI */}
-          <div className="space-y-3">
+          <div className="mx-auto max-w-md lg:max-w-lg">
+
             {/* Multiple Choice */}
             {currentStep.answerType === 'multiple-choice' && (
-              <>
+              <div className="space-y-3 sm:space-y-4">
                 {currentStep.mcOptions && currentStep.mcOptions.length > 0 ? (
                   currentStep.mcOptions.map((opt, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleSubmitResponse(null, opt)}
-                      className="w-full px-6 py-4 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition text-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-black/60 hover:bg-purple-600/80 backdrop-blur-md text-white rounded-xl font-medium transition text-base sm:text-lg border border-white/10"
                     >
                       {opt}
                     </button>
                   ))
                 ) : (
-                  <div className="text-center text-gray-500 py-4">No options available</div>
+                  <div className="text-center text-white/60 py-4">No options available</div>
                 )}
-              </>
+              </div>
             )}
 
             {/* Button/CTA */}
             {currentStep.answerType === 'button' && (
-              <>
+              <div className="space-y-3 sm:space-y-4">
                 {currentStep.buttonOptions && currentStep.buttonOptions.length > 0 ? (
                   currentStep.buttonOptions.map((btn, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleSubmitResponse(null, btn.text)}
-                      className="w-full px-6 py-4 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition text-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-purple-600/70 hover:bg-purple-600/90 backdrop-blur-md text-white rounded-xl font-semibold transition text-base sm:text-lg border border-white/20 shadow-lg"
                     >
                       {btn.text}
                     </button>
                   ))
                 ) : (
-                  <div className="text-center text-gray-500 py-4">No buttons available</div>
+                  <div className="text-center text-white/60 py-4">No buttons available</div>
                 )}
-              </>
+              </div>
             )}
 
             {/* Contact Form */}
             {currentStep.answerType === 'contact-form' && (
-              <form onSubmit={handleFormSubmit} className="space-y-3">
+              <form onSubmit={handleFormSubmit} className="space-y-3 sm:space-y-4">
                 {currentStep.contactFormFields && currentStep.contactFormFields.length > 0 ? (
                   <>
-                    {currentStep.contactFormFields
-                      .filter(field => field.enabled)
-                      .map((field, idx) => (
-                        <div key={field.id || idx}>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {field.label}
-                            {field.required && <span className="text-red-500 ml-1">*</span>}
-                          </label>
-                          <input
-                            type={field.type}
-                            required={field.required}
-                            value={formData[field.id] || ''}
-                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-                            placeholder={`Enter ${field.label.toLowerCase()}`}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                          />
-                        </div>
-                      ))}
+                    <div className="bg-black/60 backdrop-blur-md p-4 sm:p-5 rounded-xl space-y-3">
+                      {currentStep.contactFormFields
+                        .filter(field => field.enabled)
+                        .map((field, idx) => (
+                          <div key={field.id || idx}>
+                            <label className="block text-sm font-medium text-white/90 mb-1">
+                              {field.label}
+                              {field.required && <span className="text-red-400 ml-1">*</span>}
+                            </label>
+                            <input
+                              type={field.type}
+                              required={field.required}
+                              value={formData[field.id] || ''}
+                              onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                              placeholder={`Enter ${field.label.toLowerCase()}`}
+                              className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-white/50"
+                            />
+                          </div>
+                        ))}
+                    </div>
                     <button
                       type="submit"
-                      className="w-full px-6 py-4 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition text-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-purple-600/70 hover:bg-purple-600/90 backdrop-blur-md text-white rounded-xl font-semibold transition text-base sm:text-lg border border-white/20"
                     >
                       Submit
                     </button>
                   </>
                 ) : (
-                  <div className="text-center text-gray-500 py-4">No form fields configured</div>
+                  <div className="text-center text-white/60 py-4">No form fields configured</div>
                 )}
               </form>
             )}
 
             {/* NPS Scale */}
             {currentStep.answerType === 'nps' && (
-              <div className="space-y-4">
-                <div className="text-center text-base text-gray-700 font-medium">
+              <div className="space-y-4 bg-black/60 backdrop-blur-md p-4 sm:p-6 rounded-xl">
+                <div className="text-center text-base sm:text-lg text-white font-medium mb-4">
                   How likely are you to recommend us?
                 </div>
                 <div className="flex gap-2 justify-center flex-wrap">
@@ -447,13 +459,13 @@ export default function CampaignViewer() {
                     <button
                       key={i}
                       onClick={() => handleSubmitResponse(null, i.toString())}
-                      className="w-12 h-12 bg-violet-100 hover:bg-violet-600 hover:text-white text-violet-700 rounded-lg font-bold transition"
+                      className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 hover:bg-purple-600 hover:text-white text-white/90 rounded-lg font-bold transition backdrop-blur-sm border border-white/30"
                     >
                       {i}
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-xs sm:text-sm text-white/70">
                   <span>Not likely</span>
                   <span>Very likely</span>
                 </div>
@@ -468,7 +480,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.video && (
                       <button
                         onClick={() => handleResponseClick('video')}
-                        className="flex-1 py-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+                        className="flex-1 py-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
                       >
                         📹 Video
                       </button>
@@ -476,7 +488,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.audio && (
                       <button
                         onClick={() => handleResponseClick('audio')}
-                        className="flex-1 py-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+                        className="flex-1 py-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
                       >
                         🎤 Audio
                       </button>
@@ -484,7 +496,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.text && (
                       <button
                         onClick={() => handleResponseClick('text')}
-                        className="flex-1 py-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+                        className="flex-1 py-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
                       >
                         📝 Text
                       </button>
@@ -493,17 +505,17 @@ export default function CampaignViewer() {
                 ) : (
                   <div className="space-y-3">
                     {showResponseUI === 'video' && (
-                      <div className="bg-gray-800 rounded-lg p-10 text-center text-white">
-                        <i className="fas fa-video text-5xl mb-4"></i>
-                        <p className="mb-4 text-lg">Video recording interface</p>
-                        <div className="text-sm text-gray-400">Click "Record" to start recording your video response</div>
+                      <div className="bg-black/70 backdrop-blur-md rounded-xl p-8 sm:p-10 text-center text-white border border-white/20">
+                        <i className="fas fa-video text-4xl sm:text-5xl mb-4"></i>
+                        <p className="mb-4 text-base sm:text-lg">Video recording interface</p>
+                        <div className="text-sm text-white/60">Click "Record" to start recording your video response</div>
                       </div>
                     )}
                     {showResponseUI === 'audio' && (
-                      <div className="bg-gray-800 rounded-lg p-10 text-center text-white">
-                        <i className="fas fa-microphone text-5xl mb-4"></i>
-                        <p className="mb-4 text-lg">Audio recording interface</p>
-                        <div className="text-sm text-gray-400">Click "Record" to start recording your audio response</div>
+                      <div className="bg-black/70 backdrop-blur-md rounded-xl p-8 sm:p-10 text-center text-white border border-white/20">
+                        <i className="fas fa-microphone text-4xl sm:text-5xl mb-4"></i>
+                        <p className="mb-4 text-base sm:text-lg">Audio recording interface</p>
+                        <div className="text-sm text-white/60">Click "Record" to start recording your audio response</div>
                       </div>
                     )}
                     {showResponseUI === 'text' && (
@@ -512,7 +524,7 @@ export default function CampaignViewer() {
                           value={textResponse}
                           onChange={(e) => setTextResponse(e.target.value)}
                           placeholder="Type your response here..."
-                          className="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-violet-500 focus:outline-none"
+                          className="w-full p-4 bg-black/60 backdrop-blur-md border border-white/20 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-white/50"
                           rows="5"
                         />
                       </div>
@@ -520,13 +532,13 @@ export default function CampaignViewer() {
                     <div className="flex gap-3">
                       <button
                         onClick={handleCancelResponse}
-                        className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+                        className="flex-1 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleSubmitResponse(showResponseUI)}
-                        className="flex-1 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition font-medium"
+                        className="flex-1 py-3 bg-purple-600/70 hover:bg-purple-600/90 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
                       >
                         Submit & Continue
                       </button>
@@ -536,10 +548,11 @@ export default function CampaignViewer() {
               </>
             )}
           </div>
-        </div>
-        {/* Version Badge */}
-        <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
-          <span className="text-xs text-gray-400">v{packageInfo.version}</span>
+
+          {/* Version Badge */}
+          <div className="mt-4 sm:mt-6 text-center">
+            <span className="text-xs text-white/40">v{packageInfo.version}</span>
+          </div>
         </div>
       </div>
     </div>
