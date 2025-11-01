@@ -32,6 +32,7 @@ export default function CampaignViewer() {
     fetch(`/api/campaigns/${id}`)
       .then(res => res.json())
       .then(data => {
+        console.log('Campaign data loaded:', data);
         // Transform steps into nodes format for the viewer
         if (data.steps && data.steps.length > 0) {
           const nodes = data.steps.map(step => ({
@@ -53,9 +54,11 @@ export default function CampaignViewer() {
             logicRules: step.data?.logicRules || [],
           }));
 
+          console.log('Transformed nodes:', nodes);
           setCampaign({ ...data.campaign, nodes });
         } else {
-          setCampaign(data);
+          // If no steps, just set campaign with empty nodes array
+          setCampaign({ ...data.campaign, nodes: [] });
         }
         setLoading(false);
       })
@@ -170,9 +173,13 @@ export default function CampaignViewer() {
     );
   }
 
-  const steps = campaign.nodes
-    .filter(n => n.type === 'video')
-    .sort((a, b) => a.stepNumber - b.stepNumber);
+  const steps = campaign?.nodes
+    ? campaign.nodes
+        .filter(n => n.type === 'video')
+        .sort((a, b) => a.stepNumber - b.stepNumber)
+    : [];
+
+  console.log('Steps computed:', steps.length, 'currentStepIndex:', currentStepIndex);
 
   if (campaignEnded) {
     return (
@@ -210,14 +217,33 @@ export default function CampaignViewer() {
   }
 
   const currentStep = steps[currentStepIndex];
-  const currentNode = campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber);
+  const currentNode = campaign?.nodes ? campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber) : null;
 
-  if (!currentStep) {
+  console.log('currentStep:', currentStep);
+  console.log('currentStep.videoUrl:', currentStep?.videoUrl);
+
+  if (!currentStep && steps.length > 0) {
+    // If currentStepIndex is out of bounds, reset to first step
+    if (currentStepIndex >= steps.length) {
+      setCurrentStepIndex(0);
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto mb-4"></div>
           <div className="text-gray-600">Loading step...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentStep) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <div className="text-xl font-bold text-gray-800 mb-2">No step available</div>
+          <div className="text-gray-600">Step {currentStepIndex + 1} not found.</div>
         </div>
       </div>
     );
