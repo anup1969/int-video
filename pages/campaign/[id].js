@@ -197,8 +197,31 @@ export default function CampaignViewer() {
     );
   }
 
+  if (steps.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <div className="text-xl font-bold text-gray-800 mb-2">No steps found</div>
+          <div className="text-gray-600">This campaign has no steps configured.</div>
+        </div>
+      </div>
+    );
+  }
+
   const currentStep = steps[currentStepIndex];
   const currentNode = campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber);
+
+  if (!currentStep) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto mb-4"></div>
+          <div className="text-gray-600">Loading step...</div>
+        </div>
+      </div>
+    );
+  }
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
@@ -318,7 +341,7 @@ export default function CampaignViewer() {
               autoPlay
               muted
               playsInline
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain bg-black"
               src={currentStep.videoUrl}
             >
               Your browser does not support the video tag.
@@ -363,7 +386,7 @@ export default function CampaignViewer() {
                     <button
                       key={idx}
                       onClick={() => handleSubmitResponse(null, opt)}
-                      className="w-full px-6 py-4 sm:py-5 bg-black/60 hover:bg-violet-600/80 text-white rounded-xl sm:rounded-2xl font-medium transition text-base sm:text-lg backdrop-blur-md border border-white/20"
+                      className="w-full px-6 py-4 sm:py-5 bg-black/40 hover:bg-violet-600/60 text-white rounded-xl sm:rounded-2xl font-medium transition text-base sm:text-lg backdrop-blur-md border border-white/20"
                     >
                       {opt}
                     </button>
@@ -382,7 +405,7 @@ export default function CampaignViewer() {
                     <button
                       key={idx}
                       onClick={() => handleSubmitResponse(null, btn.text)}
-                      className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-violet-600/60 hover:bg-violet-700/70 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg"
                     >
                       {btn.text}
                     </button>
@@ -418,7 +441,7 @@ export default function CampaignViewer() {
                       ))}
                     <button
                       type="submit"
-                      className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-violet-600/60 hover:bg-violet-700/70 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg"
                     >
                       Submit
                     </button>
@@ -440,7 +463,7 @@ export default function CampaignViewer() {
                     <button
                       key={i}
                       onClick={() => handleSubmitResponse(null, i.toString())}
-                      className="w-12 h-12 bg-black/60 hover:bg-violet-600/80 text-white rounded-xl font-bold transition backdrop-blur-md border border-white/20"
+                      className="w-12 h-12 bg-black/40 hover:bg-violet-600/60 text-white rounded-xl font-bold transition backdrop-blur-md border border-white/20"
                     >
                       {i}
                     </button>
@@ -487,7 +510,7 @@ export default function CampaignViewer() {
                   <button
                     onClick={() => handleSubmitResponse(null, `${selectedDate} ${selectedTime}`)}
                     disabled={!selectedDate || !selectedTime}
-                    className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed"
+                    className="w-full px-6 py-4 sm:py-5 bg-violet-600/60 hover:bg-violet-700/70 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed"
                   >
                     Confirm Date & Time
                   </button>
@@ -530,7 +553,7 @@ export default function CampaignViewer() {
                   <button
                     onClick={() => handleSubmitResponse(null, uploadedFile ? uploadedFile.name : 'No file')}
                     disabled={!uploadedFile}
-                    className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed"
+                    className="w-full px-6 py-4 sm:py-5 bg-violet-600/60 hover:bg-violet-700/70 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed"
                   >
                     Submit File
                   </button>
@@ -546,7 +569,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.video && (
                       <button
                         onClick={() => handleResponseClick('video')}
-                        className="flex-1 min-w-[120px] py-4 bg-black/60 hover:bg-orange-600/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
+                        className="flex-1 min-w-[120px] py-4 bg-black/40 hover:bg-orange-600/60 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         📹 Video
                       </button>
@@ -554,7 +577,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.audio && (
                       <button
                         onClick={() => handleResponseClick('audio')}
-                        className="flex-1 min-w-[120px] py-4 bg-black/60 hover:bg-orange-600/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
+                        className="flex-1 min-w-[120px] py-4 bg-black/40 hover:bg-orange-600/60 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         🎤 Audio
                       </button>
@@ -562,7 +585,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.text && (
                       <button
                         onClick={() => handleResponseClick('text')}
-                        className="flex-1 min-w-[120px] py-4 bg-black/60 hover:bg-orange-600/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
+                        className="flex-1 min-w-[120px] py-4 bg-black/40 hover:bg-orange-600/60 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         📝 Text
                       </button>
@@ -571,14 +594,14 @@ export default function CampaignViewer() {
                 ) : (
                   <div className="space-y-3">
                     {showResponseUI === 'video' && (
-                      <div className="bg-black/60 rounded-xl p-10 text-center text-white backdrop-blur-md border border-white/20">
+                      <div className="bg-black/40 rounded-xl p-10 text-center text-white backdrop-blur-md border border-white/20">
                         <i className="fas fa-video text-5xl mb-4"></i>
                         <p className="mb-4 text-lg">Video recording interface</p>
                         <div className="text-sm text-white/70">Click "Record" to start recording your video response</div>
                       </div>
                     )}
                     {showResponseUI === 'audio' && (
-                      <div className="bg-black/60 rounded-xl p-10 text-center text-white backdrop-blur-md border border-white/20">
+                      <div className="bg-black/40 rounded-xl p-10 text-center text-white backdrop-blur-md border border-white/20">
                         <i className="fas fa-microphone text-5xl mb-4"></i>
                         <p className="mb-4 text-lg">Audio recording interface</p>
                         <div className="text-sm text-white/70">Click "Record" to start recording your audio response</div>
@@ -598,13 +621,13 @@ export default function CampaignViewer() {
                     <div className="flex gap-3">
                       <button
                         onClick={handleCancelResponse}
-                        className="flex-1 py-3 bg-black/60 hover:bg-black/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
+                        className="flex-1 py-3 bg-black/40 hover:bg-black/60 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleSubmitResponse(showResponseUI)}
-                        className="flex-1 py-3 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl font-semibold transition backdrop-blur-md shadow-lg"
+                        className="flex-1 py-3 bg-violet-600/60 hover:bg-violet-700/70 text-white rounded-xl font-semibold transition backdrop-blur-md shadow-lg"
                       >
                         Submit & Continue
                       </button>
