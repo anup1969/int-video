@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { answerTypes } from '../../lib/utils/constants';
+import packageInfo from '../../package.json';
 
 export default function CampaignViewer() {
   const router = useRouter();
@@ -409,6 +410,10 @@ export default function CampaignViewer() {
               </>
             )}
           </div>
+        </div>
+        {/* Version Badge */}
+        <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
+          <span className="text-xs text-gray-400">v{packageInfo.version}</span>
         </div>
       </div>
     </div>
