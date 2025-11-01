@@ -1,10 +1,11 @@
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { answerTypes } from '../../lib/utils/constants';
 
 export default function CampaignViewer() {
   const router = useRouter();
   const { id } = router.query;
+  const videoRef = useRef(null);
 
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,14 @@ export default function CampaignViewer() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [campaignEnded, setCampaignEnded] = useState(false);
   const [endConfig, setEndConfig] = useState(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [startTime] = useState(Date.now());
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [deviceInfo, setDeviceInfo] = useState({ type: 'desktop', userAgent: '' });
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -23,7 +32,31 @@ export default function CampaignViewer() {
     fetch(`/api/campaigns/${id}`)
       .then(res => res.json())
       .then(data => {
-        setCampaign(data);
+        // Transform steps into nodes format for the viewer
+        if (data.steps && data.steps.length > 0) {
+          const nodes = data.steps.map(step => ({
+            id: step.id,
+            type: 'video',
+            stepNumber: step.step_number,
+            label: step.label,
+            answerType: step.answer_type,
+            // Extract all properties from data JSONB field
+            videoUrl: step.data?.videoUrl,
+            videoThumbnail: step.data?.videoThumbnail,
+            videoPlaceholder: step.data?.videoPlaceholder || '🎬',
+            mcOptions: step.data?.mcOptions || [],
+            buttonOptions: step.data?.buttonOptions || [],
+            buttonShowTime: step.data?.buttonShowTime || 0,
+            enabledResponseTypes: step.data?.enabledResponseTypes || { video: true, audio: true, text: true },
+            showContactForm: step.data?.showContactForm || false,
+            contactFormFields: step.data?.contactFormFields || [],
+            logicRules: step.data?.logicRules || [],
+          }));
+
+          setCampaign({ ...data.campaign, nodes });
+        } else {
+          setCampaign(data);
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -31,6 +64,88 @@ export default function CampaignViewer() {
         setLoading(false);
       });
   }, [id]);
+
+  // Detect device type on mount
+  useEffect(() => {
+    const detectDevice = () => {
+      const ua = navigator.userAgent;
+      let deviceType = 'desktop';
+
+      if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+        deviceType = 'tablet';
+      } else if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
+        deviceType = 'mobile';
+      }
+
+      setDeviceInfo({ type: deviceType, userAgent: ua });
+    };
+
+    detectDevice();
+  }, []);
+
+  // Toggle mute/unmute
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  // Save response to database
+  const saveResponse = async (answerData, isCompleted = false) => {
+    if (!campaign || !campaign.nodes) {
+      console.log('Cannot save response: campaign or nodes not loaded');
+      return;
+    }
+
+    const steps = campaign.nodes
+      .filter(n => n.type === 'video')
+      .sort((a, b) => a.stepNumber - b.stepNumber);
+
+    if (steps.length === 0) {
+      console.log('Cannot save response: no steps found');
+      return;
+    }
+
+    const currentStep = steps[currentStepIndex];
+    if (!currentStep) {
+      console.log('Cannot save response: current step not found', { currentStepIndex, stepsLength: steps.length });
+      return;
+    }
+
+    console.log('Saving response:', {
+      sessionId,
+      stepId: currentStep.id,
+      stepNumber: currentStep.stepNumber,
+      answerType: currentStep.answerType,
+      answerData
+    });
+
+    try {
+      const response = await fetch(`/api/campaigns/${id}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          stepId: currentStep.id,
+          stepNumber: currentStep.stepNumber,
+          answerType: currentStep.answerType,
+          answerData,
+          userName: formData.name || null,
+          email: formData.email || null,
+          completed: isCompleted,
+          duration: Math.floor((Date.now() - startTime) / 1000),
+          deviceType: deviceInfo.type,
+          userAgent: deviceInfo.userAgent
+        })
+      });
+
+      const result = await response.json();
+      console.log('Response saved successfully:', result);
+    } catch (error) {
+      console.error('Failed to save response:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -99,7 +214,30 @@ export default function CampaignViewer() {
     setShowResponseUI(type);
   };
 
-  const handleSubmitResponse = (responseType = null, optionValue = null) => {
+  const handleSubmitResponse = async (responseType = null, optionValue = null) => {
+    if (!campaign || !campaign.nodes) return;
+
+    const steps = campaign.nodes
+      .filter(n => n.type === 'video')
+      .sort((a, b) => a.stepNumber - b.stepNumber);
+
+    const currentStep = steps[currentStepIndex];
+    const currentNode = campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber);
+
+    // Prepare answer data based on response type
+    let answerData = {};
+    if (responseType === 'text') {
+      answerData = { type: 'text', value: textResponse };
+    } else if (responseType === 'video') {
+      answerData = { type: 'video', value: 'Video recorded' };
+    } else if (responseType === 'audio') {
+      answerData = { type: 'audio', value: 'Audio recorded' };
+    } else if (optionValue !== null) {
+      answerData = { type: 'option', value: optionValue };
+    } else if (currentStep?.answerType === 'contact-form') {
+      answerData = { type: 'contact-form', value: formData };
+    }
+
     // Check if there are logic rules to follow
     if (currentNode?.logicRules && currentNode.logicRules.length > 0) {
       const matchingRule = currentNode.logicRules.find(rule => {
@@ -114,6 +252,8 @@ export default function CampaignViewer() {
 
       if (matchingRule) {
         if (matchingRule.targetType === 'end') {
+          // Save response before ending
+          await saveResponse(answerData, true);
           setEndConfig({
             endMessage: matchingRule.endMessage || 'Thank you for your response!',
             ctaText: matchingRule.ctaText,
@@ -122,11 +262,15 @@ export default function CampaignViewer() {
           setCampaignEnded(true);
           return;
         } else if (matchingRule.targetType === 'url' && matchingRule.url) {
+          // Save response before redirecting
+          await saveResponse(answerData, true);
           window.location.href = matchingRule.url;
           return;
         } else if (matchingRule.targetType === 'node' && matchingRule.target) {
           const targetStepIndex = steps.findIndex(s => s.id === matchingRule.target);
           if (targetStepIndex !== -1) {
+            // Save response before navigating
+            await saveResponse(answerData, false);
             setCurrentStepIndex(targetStepIndex);
             setShowResponseUI(null);
             setTextResponse('');
@@ -140,16 +284,20 @@ export default function CampaignViewer() {
 
     // Default behavior: go to next step or end
     if (currentStepIndex < steps.length - 1) {
+      // Save response before moving to next step
+      await saveResponse(answerData, false);
       handleNext();
     } else {
+      // This is the last step - save as completed
+      await saveResponse(answerData, true);
       setCampaignEnded(true);
       setEndConfig({ endMessage: 'Thank you for completing this campaign!' });
     }
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    handleSubmitResponse();
+    await handleSubmitResponse();
   };
 
   const handleCancelResponse = () => {
@@ -158,65 +306,55 @@ export default function CampaignViewer() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-6 text-white text-center">
-          <h3 className="text-2xl font-bold mb-2">{currentStep.label}</h3>
-          <p className="text-sm opacity-90">
-            Step {currentStepIndex + 1} of {steps.length}
-          </p>
-        </div>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      {/* Fullscreen Video Container */}
+      <div className="w-full h-screen relative">
+        {/* Video Background */}
+        {currentStep.videoUrl ? (
+          <div className="relative w-full h-full">
+            <video
+              ref={videoRef}
+              controls
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              src={currentStep.videoUrl}
+            >
+              Your browser does not support the video tag.
+            </video>
 
-        {/* Content */}
-        <div className="p-6">
-          {/* Video Player */}
-          {currentStep.videoUrl ? (
-            <div className="mb-6 rounded-lg overflow-hidden">
-              <video
-                controls
-                className="w-full"
-                src={currentStep.videoUrl}
+            {/* Top overlay - Step counter */}
+            <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/60 to-transparent flex items-center justify-between z-20">
+              <div className="text-white text-xs sm:text-sm font-medium bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-md">
+                Step {currentStepIndex + 1} of {steps.length}
+              </div>
+            </div>
+
+            {/* Unmute Button Overlay */}
+            {isMuted && (
+              <button
+                onClick={toggleMute}
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500/90 hover:bg-red-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-full font-bold shadow-2xl transition-all transform hover:scale-110 flex items-center gap-3 animate-pulse backdrop-blur-sm z-30"
               >
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          ) : (
-            <div className="bg-gray-900 rounded-lg p-8 text-center text-sm text-gray-300 mb-6 aspect-video flex items-center justify-center">
-              <div>
-                <i className="fas fa-play-circle text-5xl mb-3"></i>
-                <div className="text-lg">Video placeholder</div>
-              </div>
-            </div>
-          )}
+                <i className="fas fa-volume-up text-2xl sm:text-3xl"></i>
+                <span className="text-base sm:text-lg">Tap to Unmute</span>
+              </button>
+            )}
 
-          {/* Contact Form (if enabled) */}
-          {currentStep.showContactForm && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="text-sm font-semibold text-gray-700 mb-3">Contact Information</div>
-              <div className="space-y-3">
-                {currentStep.contactFormFields
-                  ?.filter(field => field.enabled)
-                  .map((field, idx) => (
-                    <div key={field.id || idx}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                      </label>
-                      <input
-                        type={field.type}
-                        required={field.required}
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                      />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
+            {/* Bottom overlay - Content on video */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 bg-gradient-to-t from-black/80 via-black/60 to-transparent z-20 max-h-[70vh] overflow-y-auto">
+              {/* Question Title */}
+              {currentStep.label && (
+                <div className="mb-4 text-center">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white drop-shadow-lg">
+                    {currentStep.label}
+                  </h2>
+                </div>
+              )}
 
-          {/* Answer Type UI */}
-          <div className="space-y-3">
+              {/* Answer Type UI */}
+              <div className="space-y-3 max-w-2xl mx-auto">
             {/* Multiple Choice */}
             {currentStep.answerType === 'multiple-choice' && (
               <>
@@ -225,13 +363,13 @@ export default function CampaignViewer() {
                     <button
                       key={idx}
                       onClick={() => handleSubmitResponse(null, opt)}
-                      className="w-full px-6 py-4 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition text-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-black/60 hover:bg-violet-600/80 text-white rounded-xl sm:rounded-2xl font-medium transition text-base sm:text-lg backdrop-blur-md border border-white/20"
                     >
                       {opt}
                     </button>
                   ))
                 ) : (
-                  <div className="text-center text-gray-500 py-4">No options available</div>
+                  <div className="text-center text-white/70 py-4">No options available</div>
                 )}
               </>
             )}
@@ -244,13 +382,13 @@ export default function CampaignViewer() {
                     <button
                       key={idx}
                       onClick={() => handleSubmitResponse(null, btn.text)}
-                      className="w-full px-6 py-4 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition text-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg"
                     >
                       {btn.text}
                     </button>
                   ))
                 ) : (
-                  <div className="text-center text-gray-500 py-4">No buttons available</div>
+                  <div className="text-center text-white/70 py-4">No buttons available</div>
                 )}
               </>
             )}
@@ -264,9 +402,9 @@ export default function CampaignViewer() {
                       .filter(field => field.enabled)
                       .map((field, idx) => (
                         <div key={field.id || idx}>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-white mb-2">
                             {field.label}
-                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                            {field.required && <span className="text-red-400 ml-1">*</span>}
                           </label>
                           <input
                             type={field.type}
@@ -274,19 +412,19 @@ export default function CampaignViewer() {
                             value={formData[field.id] || ''}
                             onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
                             placeholder={`Enter ${field.label.toLowerCase()}`}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                            className="w-full px-4 py-3 bg-black/50 border border-white/30 rounded-xl text-white placeholder-white/50 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 backdrop-blur-md"
                           />
                         </div>
                       ))}
                     <button
                       type="submit"
-                      className="w-full px-6 py-4 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition text-lg"
+                      className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg"
                     >
                       Submit
                     </button>
                   </>
                 ) : (
-                  <div className="text-center text-gray-500 py-4">No form fields configured</div>
+                  <div className="text-center text-white/70 py-4">No form fields configured</div>
                 )}
               </form>
             )}
@@ -294,7 +432,7 @@ export default function CampaignViewer() {
             {/* NPS Scale */}
             {currentStep.answerType === 'nps' && (
               <div className="space-y-4">
-                <div className="text-center text-base text-gray-700 font-medium">
+                <div className="text-center text-base text-white font-medium mb-4">
                   How likely are you to recommend us?
                 </div>
                 <div className="flex gap-2 justify-center flex-wrap">
@@ -302,15 +440,100 @@ export default function CampaignViewer() {
                     <button
                       key={i}
                       onClick={() => handleSubmitResponse(null, i.toString())}
-                      className="w-12 h-12 bg-violet-100 hover:bg-violet-600 hover:text-white text-violet-700 rounded-lg font-bold transition"
+                      className="w-12 h-12 bg-black/60 hover:bg-violet-600/80 text-white rounded-xl font-bold transition backdrop-blur-md border border-white/20"
                     >
                       {i}
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-sm text-white/70">
                   <span>Not likely</span>
                   <span>Very likely</span>
+                </div>
+              </div>
+            )}
+
+            {/* Calendar */}
+            {currentStep.answerType === 'calendar' && (
+              <div className="space-y-4">
+                <div className="text-center text-base text-white font-medium mb-4">
+                  📅 Select a date and time
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-black/50 border border-white/30 rounded-xl text-white focus:ring-2 focus:ring-violet-500 focus:border-violet-500 backdrop-blur-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      value={selectedTime}
+                      onChange={(e) => setSelectedTime(e.target.value)}
+                      className="w-full px-4 py-3 bg-black/50 border border-white/30 rounded-xl text-white focus:ring-2 focus:ring-violet-500 focus:border-violet-500 backdrop-blur-md"
+                      required
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleSubmitResponse(null, `${selectedDate} ${selectedTime}`)}
+                    disabled={!selectedDate || !selectedTime}
+                    className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed"
+                  >
+                    Confirm Date & Time
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* File Upload */}
+            {currentStep.answerType === 'file-upload' && (
+              <div className="space-y-4">
+                <div className="text-center text-base text-white font-medium mb-4">
+                  📎 Upload a file
+                </div>
+                <div className="space-y-3">
+                  <div className="border-2 border-dashed border-white/30 rounded-xl p-8 text-center hover:border-violet-500 transition bg-black/40 backdrop-blur-md">
+                    <input
+                      type="file"
+                      onChange={(e) => setUploadedFile(e.target.files[0])}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      {!uploadedFile ? (
+                        <div>
+                          <div className="text-4xl mb-2">📄</div>
+                          <div className="text-white mb-1">Click to upload a file</div>
+                          <div className="text-sm text-white/70">or drag and drop</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-4xl mb-2">✅</div>
+                          <div className="text-white font-medium">{uploadedFile.name}</div>
+                          <div className="text-sm text-white/70 mt-1">
+                            {(uploadedFile.size / 1024).toFixed(2)} KB
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                  <button
+                    onClick={() => handleSubmitResponse(null, uploadedFile ? uploadedFile.name : 'No file')}
+                    disabled={!uploadedFile}
+                    className="w-full px-6 py-4 sm:py-5 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl sm:rounded-2xl font-semibold transition text-base sm:text-lg backdrop-blur-md shadow-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed"
+                  >
+                    Submit File
+                  </button>
                 </div>
               </div>
             )}
@@ -319,11 +542,11 @@ export default function CampaignViewer() {
             {currentStep.answerType === 'open-ended' && (
               <>
                 {!showResponseUI ? (
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex gap-3 justify-center flex-wrap">
                     {currentStep.enabledResponseTypes?.video && (
                       <button
                         onClick={() => handleResponseClick('video')}
-                        className="flex-1 py-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+                        className="flex-1 min-w-[120px] py-4 bg-black/60 hover:bg-orange-600/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         📹 Video
                       </button>
@@ -331,7 +554,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.audio && (
                       <button
                         onClick={() => handleResponseClick('audio')}
-                        className="flex-1 py-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+                        className="flex-1 min-w-[120px] py-4 bg-black/60 hover:bg-orange-600/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         🎤 Audio
                       </button>
@@ -339,7 +562,7 @@ export default function CampaignViewer() {
                     {currentStep.enabledResponseTypes?.text && (
                       <button
                         onClick={() => handleResponseClick('text')}
-                        className="flex-1 py-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+                        className="flex-1 min-w-[120px] py-4 bg-black/60 hover:bg-orange-600/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         📝 Text
                       </button>
@@ -348,17 +571,17 @@ export default function CampaignViewer() {
                 ) : (
                   <div className="space-y-3">
                     {showResponseUI === 'video' && (
-                      <div className="bg-gray-800 rounded-lg p-10 text-center text-white">
+                      <div className="bg-black/60 rounded-xl p-10 text-center text-white backdrop-blur-md border border-white/20">
                         <i className="fas fa-video text-5xl mb-4"></i>
                         <p className="mb-4 text-lg">Video recording interface</p>
-                        <div className="text-sm text-gray-400">Click "Record" to start recording your video response</div>
+                        <div className="text-sm text-white/70">Click "Record" to start recording your video response</div>
                       </div>
                     )}
                     {showResponseUI === 'audio' && (
-                      <div className="bg-gray-800 rounded-lg p-10 text-center text-white">
+                      <div className="bg-black/60 rounded-xl p-10 text-center text-white backdrop-blur-md border border-white/20">
                         <i className="fas fa-microphone text-5xl mb-4"></i>
                         <p className="mb-4 text-lg">Audio recording interface</p>
-                        <div className="text-sm text-gray-400">Click "Record" to start recording your audio response</div>
+                        <div className="text-sm text-white/70">Click "Record" to start recording your audio response</div>
                       </div>
                     )}
                     {showResponseUI === 'text' && (
@@ -367,7 +590,7 @@ export default function CampaignViewer() {
                           value={textResponse}
                           onChange={(e) => setTextResponse(e.target.value)}
                           placeholder="Type your response here..."
-                          className="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-violet-500 focus:outline-none"
+                          className="w-full p-4 bg-black/50 border border-white/30 rounded-xl text-white placeholder-white/50 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 backdrop-blur-md"
                           rows="5"
                         />
                       </div>
@@ -375,13 +598,13 @@ export default function CampaignViewer() {
                     <div className="flex gap-3">
                       <button
                         onClick={handleCancelResponse}
-                        className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+                        className="flex-1 py-3 bg-black/60 hover:bg-black/80 text-white rounded-xl font-medium transition backdrop-blur-md border border-white/20"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleSubmitResponse(showResponseUI)}
-                        className="flex-1 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition font-medium"
+                        className="flex-1 py-3 bg-violet-600/80 hover:bg-violet-700/90 text-white rounded-xl font-semibold transition backdrop-blur-md shadow-lg"
                       >
                         Submit & Continue
                       </button>
@@ -390,8 +613,17 @@ export default function CampaignViewer() {
                 )}
               </>
             )}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="w-full h-full bg-gray-900 flex items-center justify-center">
+            <div className="text-center">
+              <i className="fas fa-play-circle text-6xl text-gray-600 mb-4"></i>
+              <div className="text-xl text-gray-400">No video</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
