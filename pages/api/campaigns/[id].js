@@ -25,13 +25,14 @@ async function getCampaign(req, res, id) {
 
   try {
     // Get campaign
-    const { data: campaign, error: campaignError } = await supabase
+    const { data: campaignData, error: campaignError } = await supabase
       .from('campaigns')
       .select('*')
       .eq('id', id)
-      .maybeSingle()
 
     if (campaignError) throw campaignError
+
+    const campaign = campaignData && campaignData.length > 0 ? campaignData[0] : null
 
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' })
