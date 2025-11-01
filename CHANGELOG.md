@@ -22,7 +22,7 @@ Added campaign response tracking and analytics.
 - Contact information capture (name, email) when provided
 
 ### Technical Details
-- Commit: (will be added after commit)
+- Commit: 05865b9
 - Files Modified:
   - pages/campaign/[id].js - Added saveResponse function and session tracking
   - package.json - Version bump to 1.1.0
