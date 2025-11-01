@@ -23,11 +23,13 @@ export default function CampaignViewer() {
   const [endConfig, setEndConfig] = useState(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [showPlayButton, setShowPlayButton] = useState(false);
 
   // Response tracking
   const sessionId = useRef(null);
   const startTime = useRef(null);
   const videoRef = useRef(null);
+  const hideButtonTimeout = useRef(null);
 
   useEffect(() => {
     if (!id) return;
@@ -282,8 +284,40 @@ export default function CampaignViewer() {
     }
   };
 
+  const handleMouseMove = () => {
+    setShowPlayButton(true);
+
+    // Clear existing timeout
+    if (hideButtonTimeout.current) {
+      clearTimeout(hideButtonTimeout.current);
+    }
+
+    // Set new timeout to hide button after 500ms
+    hideButtonTimeout.current = setTimeout(() => {
+      setShowPlayButton(false);
+    }, 500);
+  };
+
+  const handleMouseEnterButton = () => {
+    // Clear timeout when hovering over button
+    if (hideButtonTimeout.current) {
+      clearTimeout(hideButtonTimeout.current);
+    }
+    setShowPlayButton(true);
+  };
+
+  const handleMouseLeaveButton = () => {
+    // Hide button after 500ms when leaving button area
+    hideButtonTimeout.current = setTimeout(() => {
+      setShowPlayButton(false);
+    }, 500);
+  };
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black">
+    <div
+      className="relative w-screen h-screen overflow-hidden bg-black"
+      onMouseMove={handleMouseMove}
+    >
       {/* Fullscreen Video Background */}
       {currentStep.videoUrl ? (
         <video
@@ -335,31 +369,36 @@ export default function CampaignViewer() {
         </button>
       )}
 
-      {/* Top Right Controls */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2 sm:gap-3 z-20">
-        {/* Play/Pause Button */}
-        {currentStep.videoUrl && (
+      {/* Centered Play/Pause Button */}
+      {currentStep.videoUrl && showPlayButton && (
+        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
           <button
             onClick={handlePlayPause}
-            className="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 sm:p-3 rounded-lg transition"
+            onMouseEnter={handleMouseEnterButton}
+            onMouseLeave={handleMouseLeaveButton}
+            className="bg-black/70 hover:bg-black/90 backdrop-blur-md text-white p-5 sm:p-6 rounded-full transition-all pointer-events-auto"
             aria-label={isPlaying ? 'Pause video' : 'Play video'}
+            style={{
+              opacity: showPlayButton ? 1 : 0,
+              transition: 'opacity 0.3s ease-in-out'
+            }}
           >
             {isPlaying ? (
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
               </svg>
             ) : (
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
           </button>
-        )}
-
-        {/* Step Progress */}
-        <div className="bg-black/60 backdrop-blur-md text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm">
-          Step {currentStepIndex + 1} of {steps.length}
         </div>
+      )}
+
+      {/* Step Progress - Top Right */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-black/60 backdrop-blur-md text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm z-20">
+        Step {currentStepIndex + 1} of {steps.length}
       </div>
 
       {/* Bottom Overlay - Contains all interactive elements */}
