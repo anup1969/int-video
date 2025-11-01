@@ -188,7 +188,20 @@ export default function CampaignViewer() {
           return rule.value === responseType;
         }
         if (optionValue !== null) {
-          return rule.label && rule.label.includes(optionValue);
+          // Check if rule label contains the option value (for mc/buttons)
+          if (rule.label && rule.label.includes(optionValue)) {
+            return true;
+          }
+          // Also check button index conditions (button_0, button_1, etc)
+          if (rule.condition && rule.condition.startsWith('button_')) {
+            const buttonIndex = parseInt(rule.condition.replace('button_', ''));
+            const buttons = currentStep.buttonOptions || currentStep.mcOptions || [];
+            const selectedButton = buttons[buttonIndex];
+            if (selectedButton) {
+              const buttonText = selectedButton.text || selectedButton;
+              return buttonText === optionValue;
+            }
+          }
         }
         return false;
       });
@@ -204,7 +217,12 @@ export default function CampaignViewer() {
           setCampaignEnded(true);
           return;
         } else if (matchingRule.targetType === 'url' && matchingRule.url) {
-          window.location.href = matchingRule.url;
+          // Add protocol if missing
+          let url = matchingRule.url;
+          if (!url.match(/^https?:\/\//i)) {
+            url = 'https://' + url;
+          }
+          window.location.href = url;
           return;
         } else if (matchingRule.targetType === 'node' && matchingRule.target) {
           const targetStepIndex = steps.findIndex(s => s.id === matchingRule.target);

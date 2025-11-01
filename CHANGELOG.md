@@ -7,6 +7,33 @@ The format follows [Semantic Versioning](https://semver.org/):
 - MINOR version (0.X.0) for new functionality in a backwards compatible manner
 - PATCH version (0.0.X) for backwards compatible bug fixes
 
+## [1.1.1] - 2025-11-01
+
+### Description
+Bug fixes for logic rules and URL redirects.
+
+### Fixed
+- Logic rule matching for button conditions (button_0, button_1, etc.) now works correctly
+- URL redirects now automatically add https:// protocol if missing
+- Campaign viewer no longer shows "campaign not found" error when clicking URL redirect buttons
+
+### Technical Details
+- Commit: (will be added after commit)
+- Files Modified:
+  - pages/campaign/[id].js - Fixed logic rule matching and URL protocol handling
+  - package.json - Version bump to 1.1.1
+  - CHANGELOG.md - This entry
+
+### Rollback Instructions
+To rollback to v1.1.0:
+```bash
+git checkout 05865b9
+vercel --prod
+vercel alias <deployment-url> int-video.vercel.app
+```
+
+---
+
 ## [1.1.0] - 2025-11-01
 
 ### Description
