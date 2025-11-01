@@ -27,7 +27,7 @@ Added video autoplay with unmute functionality for better user engagement.
 - Smooth transition from muted to unmuted playback
 
 ### Technical Details
-- Commit: (will be added after commit)
+- Commit: f1c37d5
 - Files Modified:
   - pages/campaign/[id].js - Added video autoplay, unmute button, and state management
   - package.json - Version bump to 1.2.0
