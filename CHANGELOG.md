@@ -7,6 +7,42 @@ The format follows [Semantic Versioning](https://semver.org/):
 - MINOR version (0.X.0) for new functionality in a backwards compatible manner
 - PATCH version (0.0.X) for backwards compatible bug fixes
 
+## [1.2.0] - 2025-11-01
+
+### Description
+Added video autoplay with unmute functionality for better user engagement.
+
+### Features Added
+- Video autoplay on muted state for immediate engagement
+- Unmute button overlay in top-left corner of video
+- Click unmute button to restart video from beginning with sound
+- Auto-hide unmute button after clicking
+- Translucent button design with mute icon and clear call-to-action
+- playsInline attribute for better mobile compatibility
+
+### User Experience
+- Videos now start playing automatically when user lands on campaign
+- Muted autoplay respects browser policies
+- Clear visual prompt to unmute and replay with sound
+- Smooth transition from muted to unmuted playback
+
+### Technical Details
+- Commit: (will be added after commit)
+- Files Modified:
+  - pages/campaign/[id].js - Added video autoplay, unmute button, and state management
+  - package.json - Version bump to 1.2.0
+  - CHANGELOG.md - This entry
+
+### Rollback Instructions
+To rollback to v1.1.1:
+```bash
+git checkout 26513e1
+vercel --prod
+vercel alias <deployment-url> int-video.vercel.app
+```
+
+---
+
 ## [1.1.1] - 2025-11-01
 
 ### Description

@@ -21,10 +21,12 @@ export default function CampaignViewer() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [campaignEnded, setCampaignEnded] = useState(false);
   const [endConfig, setEndConfig] = useState(null);
+  const [isMuted, setIsMuted] = useState(true);
 
   // Response tracking
   const sessionId = useRef(null);
   const startTime = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     if (!id) return;
@@ -258,6 +260,15 @@ export default function CampaignViewer() {
     setTextResponse('');
   };
 
+  const handleUnmute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.currentTime = 0;
+      videoRef.current.play();
+      setIsMuted(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden">
@@ -273,14 +284,47 @@ export default function CampaignViewer() {
         <div className="p-6">
           {/* Video Player */}
           {currentStep.videoUrl ? (
-            <div className="mb-6 rounded-lg overflow-hidden">
+            <div className="mb-6 rounded-lg overflow-hidden relative">
               <video
+                ref={videoRef}
                 controls
+                autoPlay
+                muted={isMuted}
+                playsInline
                 className="w-full"
                 src={currentStep.videoUrl}
               >
                 Your browser does not support the video tag.
               </video>
+              {/* Unmute Button */}
+              {isMuted && (
+                <button
+                  onClick={handleUnmute}
+                  className="absolute top-4 left-4 bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition backdrop-blur-sm"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                      clipRule="evenodd"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium">Click to Unmute</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-gray-900 rounded-lg p-8 text-center text-sm text-gray-300 mb-6 aspect-video flex items-center justify-center">
