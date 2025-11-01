@@ -30,40 +30,68 @@ export default async function handler(req, res) {
 
     if (deleteStepsError) throw deleteStepsError
 
-    // 3. Insert new steps (filter out 'start' node)
-    const videoSteps = nodes.filter(n => n.type === 'video').map(node => ({
+    // 3. Insert new steps and create ID mapping
+    // Store all node data in the 'data' JSONB column
+    const videoNodes = nodes.filter(n => n.type === 'video');
+    const videoSteps = videoNodes.map(node => ({
       campaign_id: id,
-      id: node.id,
       step_number: node.stepNumber,
       label: node.label,
-      position: node.position,
-      answer_type: node.answerType,
-      video_url: node.videoUrl || null,
-      video_thumbnail: node.videoThumbnail || null,
-      video_placeholder: node.videoPlaceholder || '🎬',
-      mc_options: node.mcOptions || [],
-      button_options: node.buttonOptions || [],
-      enabled_response_types: node.enabledResponseTypes || { video: true, audio: true, text: true },
-      show_contact_form: node.showContactForm || false,
-      contact_form_fields: node.contactFormFields || [],
-      logic_rules: node.logicRules || [],
+      answer_type: node.answerType || 'open-ended',
+      data: {
+        originalId: node.id, // Store frontend ID for mapping
+        position: node.position,
+        videoUrl: node.videoUrl || null,
+        videoThumbnail: node.videoThumbnail || null,
+        videoPlaceholder: node.videoPlaceholder || '🎬',
+        mcOptions: node.mcOptions || [],
+        buttonOptions: node.buttonOptions || [],
+        buttonShowTime: node.buttonShowTime || 0,
+        enabledResponseTypes: node.enabledResponseTypes || { video: true, audio: true, text: true },
+        showContactForm: node.showContactForm || false,
+        contactFormFields: node.contactFormFields || [],
+        logicRules: node.logicRules || [],
+      }
     }))
+
+    let idMapping = {}; // Map frontend node IDs to database step IDs
 
     if (videoSteps.length > 0) {
-      const { error: stepsError } = await supabase
+      // Insert and get back the database-generated IDs
+      const { data: insertedSteps, error: stepsError } = await supabase
         .from('steps')
         .insert(videoSteps)
+        .select()
 
       if (stepsError) throw stepsError
+
+      // Create mapping: frontend node ID -> database step ID
+      insertedSteps.forEach(step => {
+        idMapping[step.data.originalId] = step.id;
+      });
+
+      console.log('ID Mapping:', idMapping);
     }
 
-    // 4. Insert connections
-    const connectionsData = connections.map(conn => ({
-      campaign_id: id,
-      from_step_id: conn.from,
-      to_step_id: conn.to,
-      connection_type: conn.type || 'default',
-    }))
+    // 4. Insert connections using mapped database IDs
+    const connectionsData = connections
+      .filter(conn => {
+        // Only include connections where both nodes exist
+        const fromExists = conn.from === 'start' || idMapping[conn.from];
+        const toExists = idMapping[conn.to];
+
+        if (!fromExists || !toExists) {
+          console.warn('Skipping connection - missing nodes:', { from: conn.from, to: conn.to });
+        }
+
+        return fromExists && toExists;
+      })
+      .map(conn => ({
+        campaign_id: id,
+        from_step: conn.from === 'start' ? null : idMapping[conn.from],
+        to_step: idMapping[conn.to],
+        connection_type: conn.type || 'logic',
+      }))
 
     if (connectionsData.length > 0) {
       const { error: connectionsError } = await supabase

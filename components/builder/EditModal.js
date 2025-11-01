@@ -91,6 +91,7 @@ export default function EditModal({
           {activeTab === 'logic' && (
             <LogicTab
               editingStep={editingStep}
+              setEditingStep={setEditingStep}
               nodes={nodes}
               updateLogicRule={updateLogicRule}
             />
@@ -430,7 +431,7 @@ function AnswerTab({
 }
 
 // Logic Tab Component
-function LogicTab({ editingStep, nodes, updateLogicRule }) {
+function LogicTab({ editingStep, setEditingStep, nodes, updateLogicRule }) {
   return (
     <div className="space-y-4">
       <div className="bg-violet-50 p-4 rounded-lg mb-4">
@@ -441,6 +442,27 @@ function LogicTab({ editingStep, nodes, updateLogicRule }) {
           Set a path for EACH possible outcome. Incomplete paths show orange warning.
         </div>
       </div>
+
+      {/* Button Show Time - Only for button and multiple-choice answer types */}
+      {(editingStep.answerType === 'button' || editingStep.answerType === 'multiple-choice') && (
+        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            ⏱️ Show buttons after (seconds)
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.5"
+            value={editingStep.buttonShowTime || 0}
+            onChange={(e) => setEditingStep({ ...editingStep, buttonShowTime: parseFloat(e.target.value) || 0 })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500"
+            placeholder="0"
+          />
+          <div className="text-xs text-gray-600 mt-1">
+            All buttons will appear at the same time after this delay (default: 0 = immediately)
+          </div>
+        </div>
+      )}
 
       {editingStep.logicRules.map((rule, idx) => {
         const isIncomplete = !rule.target || rule.target === '';

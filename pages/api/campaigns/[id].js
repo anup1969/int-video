@@ -1,6 +1,5 @@
 // API route for single campaign operations
 import { supabase } from '../../../lib/supabase'
-import logger from '../../../lib/logger'
 
 export default async function handler(req, res) {
   const { method, query } = req
@@ -21,22 +20,15 @@ export default async function handler(req, res) {
 
 // Get single campaign with all steps and connections
 async function getCampaign(req, res, id) {
-  logger.info('Get campaign request', { campaignId: id });
-
   try {
     // Get campaign
-    const { data: campaignData, error: campaignError } = await supabase
+    const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
       .select('*')
       .eq('id', id)
+      .single()
 
     if (campaignError) throw campaignError
-
-    const campaign = campaignData && campaignData.length > 0 ? campaignData[0] : null
-
-    if (!campaign) {
-      return res.status(404).json({ error: 'Campaign not found' })
-    }
 
     // Get steps
     const { data: steps, error: stepsError } = await supabase
@@ -55,19 +47,13 @@ async function getCampaign(req, res, id) {
 
     if (connectionsError) throw connectionsError
 
-    logger.info('Campaign loaded successfully', {
-      campaignId: id,
-      stepCount: steps?.length,
-      connectionCount: connections?.length
-    });
-
     return res.status(200).json({
       campaign,
       steps: steps || [],
       connections: connections || [],
     })
   } catch (error) {
-    logger.error('Error fetching campaign', { campaignId: id, error: error.message });
+    console.error('Error fetching campaign:', error)
     return res.status(500).json({ error: error.message })
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { v4 as uuidv4 } from 'uuid';
 import {
   answerTypes,
   getDefaultLogicRules,
@@ -32,21 +33,6 @@ export default function FlowBuilder() {
       position: { x: 100, y: 250 },
       label: '▶️ Start Campaign',
     },
-    {
-      id: '1',
-      type: 'video',
-      position: { x: 400, y: 200 },
-      stepNumber: 1,
-      label: 'Welcome Video',
-      answerType: 'multiple-choice',
-      logicRules: [],
-      videoPlaceholder: '👋',
-      mcOptions: ['Learn More', 'Schedule Call'],
-      buttonOptions: [{ text: 'Continue', target: '', targetType: 'node' }],
-      enabledResponseTypes: { video: true, audio: true, text: true },
-      showContactForm: false,
-      contactFormFields: defaultContactFormFields,
-    },
   ]);
 
   const [connections, setConnections] = useState([]);
@@ -69,6 +55,7 @@ export default function FlowBuilder() {
     videoUrl: '',
     mcOptions: [],
     buttonOptions: [],
+    buttonShowTime: 0,
     enabledResponseTypes: { video: true, audio: true, text: true },
     showContactForm: false,
     contactFormFields: defaultContactFormFields,
@@ -77,6 +64,14 @@ export default function FlowBuilder() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const autoSaveTimerRef = useRef(null);
+
+  // Add builder-page class to body
+  useEffect(() => {
+    document.body.classList.add('builder-page');
+    return () => {
+      document.body.classList.remove('builder-page');
+    };
+  }, []);
 
   // Load campaign from URL on mount
   useEffect(() => {
@@ -87,14 +82,60 @@ export default function FlowBuilder() {
       try {
         const response = await fetch(`/api/campaigns/${id}`);
         if (response.ok) {
-          const { campaign } = await response.json();
+          const { campaign, steps, connections: loadedConnections } = await response.json();
+
+          console.log('Loading campaign:', {
+            campaignId: campaign.id,
+            stepCount: steps?.length,
+            connectionCount: loadedConnections?.length
+          });
+
           setCampaignId(campaign.id);
           setCampaignName(campaign.name);
 
-          // Load campaign data if exists
-          if (campaign.data) {
-            setNodes(campaign.data.nodes || nodes);
-            setConnections(campaign.data.connections || connections);
+          // Convert steps to nodes format
+          if (steps && steps.length > 0) {
+            const loadedNodes = [
+              {
+                id: 'start',
+                type: 'start',
+                position: { x: 100, y: 250 },
+                label: '▶️ Start Campaign',
+              },
+              ...steps.map(step => ({
+                id: step.id,
+                type: 'video',
+                position: step.data?.position || { x: 400, y: 200 },
+                stepNumber: step.step_number,
+                label: step.label,
+                answerType: step.answer_type,
+                logicRules: step.data?.logicRules || [],
+                videoUrl: step.data?.videoUrl || null,
+                videoThumbnail: step.data?.videoThumbnail || null,
+                videoPlaceholder: step.data?.videoPlaceholder || '🎬',
+                mcOptions: step.data?.mcOptions || [],
+                buttonOptions: step.data?.buttonOptions || [],
+                buttonShowTime: step.data?.buttonShowTime || 0,
+                enabledResponseTypes: step.data?.enabledResponseTypes || { video: true, audio: true, text: true },
+                showContactForm: step.data?.showContactForm || false,
+                contactFormFields: step.data?.contactFormFields || defaultContactFormFields,
+              }))
+            ];
+
+            // Convert connections to use database UUIDs
+            const formattedConnections = (loadedConnections || []).map(conn => ({
+              from: conn.from_step || 'start',
+              to: conn.to_step,
+              type: conn.connection_type || 'logic'
+            }));
+
+            setNodes(loadedNodes);
+            setConnections(formattedConnections);
+
+            console.log('Campaign loaded:', {
+              nodeCount: loadedNodes.length,
+              connectionCount: formattedConnections.length
+            });
           }
         }
       } catch (error) {
@@ -159,7 +200,9 @@ export default function FlowBuilder() {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save campaign state');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Save failed:', response.status, errorData);
+      throw new Error(errorData.error || 'Failed to save campaign state');
     }
 
     return response.json();
@@ -189,19 +232,20 @@ export default function FlowBuilder() {
         ...steps.map(step => ({
           id: step.id,
           type: 'video',
-          position: step.position,
+          position: step.data?.position || { x: 400, y: 200 },
           stepNumber: step.step_number,
           label: step.label,
           answerType: step.answer_type,
-          logicRules: step.logic_rules || [],
-          videoUrl: step.video_url,
-          videoThumbnail: step.video_thumbnail,
-          videoPlaceholder: step.video_placeholder || '🎬',
-          mcOptions: step.mc_options || [],
-          buttonOptions: step.button_options || [],
-          enabledResponseTypes: step.enabled_response_types || { video: true, audio: true, text: true },
-          showContactForm: step.show_contact_form || false,
-          contactFormFields: step.contact_form_fields || defaultContactFormFields,
+          logicRules: step.data?.logicRules || [],
+          videoUrl: step.data?.videoUrl || null,
+          videoThumbnail: step.data?.videoThumbnail || null,
+          videoPlaceholder: step.data?.videoPlaceholder || '🎬',
+          mcOptions: step.data?.mcOptions || [],
+          buttonOptions: step.data?.buttonOptions || [],
+          buttonShowTime: step.data?.buttonShowTime || 0,
+          enabledResponseTypes: step.data?.enabledResponseTypes || { video: true, audio: true, text: true },
+          showContactForm: step.data?.showContactForm || false,
+          contactFormFields: step.data?.contactFormFields || defaultContactFormFields,
         }))
       ];
 
@@ -345,20 +389,30 @@ export default function FlowBuilder() {
         const x = (e.clientX - rect.left - panPosition.x) / scale;
         const y = (e.clientY - rect.top - panPosition.y) / scale;
 
+        const mcOptions = answerType === 'multiple-choice' ? ['Option A', 'Option B'] : [];
+        const buttonOptions = answerType === 'button' ? [{ text: 'Continue', target: '', targetType: 'node' }] : [];
+
+        // Generate appropriate logic rules based on answer type
+        let logicRules;
+        if (answerType === 'multiple-choice') {
+          logicRules = updateLogicRulesForAnswerType('multiple-choice', mcOptions, [], { video: true, audio: true, text: true });
+        } else if (answerType === 'button') {
+          logicRules = updateLogicRulesForAnswerType('button', [], buttonOptions, { video: true, audio: true, text: true });
+        } else {
+          logicRules = getDefaultLogicRules(answerType);
+        }
+
         const newNode = {
-          id: Date.now().toString(),
+          id: uuidv4(),
           type: 'video',
           position: { x, y },
           stepNumber: nodes.filter((n) => n.type === 'video').length + 1,
           label: `Step ${nodes.filter((n) => n.type === 'video').length + 1}`,
           answerType: answerType,
-          logicRules: getDefaultLogicRules(answerType),
+          logicRules: logicRules,
           videoPlaceholder: answerTypes.find((t) => t.id === answerType)?.icon,
-          mcOptions: answerType === 'multiple-choice' ? ['Option A', 'Option B'] : [],
-          buttonOptions:
-            answerType === 'button'
-              ? [{ text: 'Continue', target: '', targetType: 'node' }]
-              : [],
+          mcOptions: mcOptions,
+          buttonOptions: buttonOptions,
           enabledResponseTypes: { video: true, audio: true, text: true },
           showContactForm: false,
           contactFormFields: defaultContactFormFields,
@@ -379,19 +433,32 @@ export default function FlowBuilder() {
       // Ensure logic rules are up-to-date with current answer type and options
       let logicRules = node.logicRules || [];
 
+      // Initialize mcOptions with defaults if multiple-choice and empty
+      const mcOptionsToUse = node.answerType === 'multiple-choice' && (!node.mcOptions || node.mcOptions.length === 0)
+        ? ['Option A', 'Option B']
+        : (node.mcOptions || []);
+
       // Regenerate logic rules if they're empty or outdated
       if (logicRules.length === 0 || !node.logicRules) {
-        const mcOptions = node.mcOptions || [];
         const buttonOptions = node.buttonOptions || [{ text: 'Continue', target: '', targetType: 'node' }];
         const enabledResponseTypes = node.enabledResponseTypes || { video: true, audio: true, text: true };
 
         if (node.answerType === 'multiple-choice') {
-          logicRules = updateLogicRulesForAnswerType('multiple-choice', mcOptions, [], enabledResponseTypes);
+          logicRules = updateLogicRulesForAnswerType('multiple-choice', mcOptionsToUse, [], enabledResponseTypes);
         } else if (node.answerType === 'button') {
           logicRules = updateLogicRulesForAnswerType('button', [], buttonOptions, enabledResponseTypes);
         } else {
           logicRules = getDefaultLogicRules(node.answerType, enabledResponseTypes);
         }
+      }
+
+      // Update the node with initialized values if they were empty
+      if (node.answerType === 'multiple-choice' && (!node.mcOptions || node.mcOptions.length === 0)) {
+        setNodes(nodes.map(n =>
+          n.id === nodeId
+            ? { ...n, mcOptions: mcOptionsToUse, logicRules: logicRules }
+            : n
+        ));
       }
 
       setEditingStep({
@@ -400,8 +467,9 @@ export default function FlowBuilder() {
         answerType: node.answerType,
         logicRules: logicRules,
         videoUrl: node.videoUrl || '',
-        mcOptions: node.mcOptions || [],
+        mcOptions: mcOptionsToUse,
         buttonOptions: node.buttonOptions || [{ text: 'Continue', target: '', targetType: 'node' }],
+        buttonShowTime: node.buttonShowTime || 0,
         enabledResponseTypes: node.enabledResponseTypes || { video: true, audio: true, text: true },
         showContactForm: node.showContactForm || false,
         contactFormFields: node.contactFormFields || defaultContactFormFields,
@@ -417,7 +485,7 @@ export default function FlowBuilder() {
     if (node) {
       const newNode = {
         ...node,
-        id: Date.now().toString(),
+        id: uuidv4(),
         position: { x: node.position.x + 50, y: node.position.y + 50 },
         stepNumber: nodes.filter((n) => n.type === 'video').length + 1,
         label: `${node.label} (Copy)`,
@@ -473,6 +541,7 @@ export default function FlowBuilder() {
               videoPlaceholder: answerTypes.find((t) => t.id === editingStep.answerType)?.icon,
               mcOptions: editingStep.mcOptions,
               buttonOptions: editingStep.buttonOptions,
+              buttonShowTime: editingStep.buttonShowTime || 0,
               enabledResponseTypes: editingStep.enabledResponseTypes,
               showContactForm: editingStep.showContactForm,
               contactFormFields: editingStep.contactFormFields,
@@ -502,7 +571,7 @@ export default function FlowBuilder() {
 
   const handleAddStep = () => {
     const newNode = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       type: 'video',
       position: { x: 400, y: 100 + nodes.filter((n) => n.type === 'video').length * 200 },
       stepNumber: nodes.filter((n) => n.type === 'video').length + 1,
@@ -646,7 +715,7 @@ export default function FlowBuilder() {
     const newFields = [
       ...editingStep.contactFormFields,
       {
-        id: `custom_${Date.now()}`,
+        id: `custom_${uuidv4()}`,
         label: 'Custom Field',
         type: 'text',
         required: false,

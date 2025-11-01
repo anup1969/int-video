@@ -6,15 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "logs": "node scripts/view-logs.js",
+    "test:save": "node scripts/test-save-load.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.77.0",
     "dotenv": "^17.2.3",
     "formidable": "^3.5.4",
     "next": "^14.0.4",
+    "pg": "^8.16.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -25,41 +25,64 @@ export default function ResponseViewer() {
       // Load campaign details
       const campaignRes = await fetch(`/api/campaigns/${id}`);
       const campaignData = await campaignRes.json();
-      setCampaign(campaignData);
+      setCampaign(campaignData.campaign);
 
-      // Load responses (simulated for now - would come from a real API)
-      // For now, we'll show placeholder data
-      setResponses([
-        {
-          id: '1',
-          userName: 'John Doe',
-          email: 'john@example.com',
-          completedAt: new Date().toISOString(),
-          status: 'completed',
-          duration: '2m 34s',
-          responses: [
-            { step: 1, type: 'multiple-choice', value: 'Learn More' },
-            { step: 2, type: 'text', value: 'This is a great product!' }
-          ]
-        },
-        {
-          id: '2',
-          userName: 'Jane Smith',
-          email: 'jane@example.com',
-          completedAt: new Date().toISOString(),
-          status: 'incomplete',
-          duration: '1m 12s',
-          responses: [
-            { step: 1, type: 'multiple-choice', value: 'Schedule Call' }
-          ]
-        }
-      ]);
+      // Load actual responses from API
+      const responsesRes = await fetch(`/api/campaigns/${id}/responses`);
+      const responsesData = await responsesRes.json();
+
+      // Transform responses to match the UI format
+      const transformedResponses = responsesData.responses.map(response => {
+        const formatDuration = (seconds) => {
+          if (!seconds) return '0s';
+          const mins = Math.floor(seconds / 60);
+          const secs = seconds % 60;
+          return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        };
+
+        return {
+          id: response.id,
+          userName: response.user_name || 'Anonymous',
+          email: response.email || 'No email provided',
+          completedAt: response.completed_at || response.created_at,
+          status: response.completed ? 'completed' : 'incomplete',
+          duration: formatDuration(response.duration),
+          deviceType: response.data?.deviceType || 'unknown',
+          userAgent: response.data?.userAgent || '',
+          responses: (response.data?.steps || []).map(step => ({
+            step: step.stepNumber,
+            type: step.answerType,
+            value: formatAnswerValue(step.answerData)
+          }))
+        };
+      });
+
+      setResponses(transformedResponses);
 
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatAnswerValue = (answerData) => {
+    if (!answerData) return 'No response';
+
+    if (answerData.type === 'text') {
+      return answerData.value;
+    } else if (answerData.type === 'option') {
+      return answerData.value;
+    } else if (answerData.type === 'contact-form') {
+      const formData = answerData.value;
+      return `${formData.name || ''} - ${formData.email || ''} - ${formData.phone || ''}`;
+    } else if (answerData.type === 'video') {
+      return 'Video response recorded';
+    } else if (answerData.type === 'audio') {
+      return 'Audio response recorded';
+    }
+
+    return JSON.stringify(answerData.value);
   };
 
   const filteredResponses = responses.filter(response => {
@@ -276,6 +299,9 @@ export default function ResponseViewer() {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Device
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Duration
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -303,6 +329,14 @@ export default function ResponseViewer() {
                       }`}>
                         {response.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        {response.deviceType === 'mobile' && <i className="fas fa-mobile-alt text-blue-500"></i>}
+                        {response.deviceType === 'tablet' && <i className="fas fa-tablet-alt text-green-500"></i>}
+                        {response.deviceType === 'desktop' && <i className="fas fa-desktop text-gray-500"></i>}
+                        <span className="capitalize">{response.deviceType}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {response.duration}

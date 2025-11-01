@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Response Save</title>
+</head>
+<body>
+    <h1>Test Response Save API</h1>
+    <button onclick="testSave()">Test Save Response</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testSave() {
+            const campaignId = 'ae0b822d-eb14-4dd9-8523-292e7950f913'; // Use your campaign ID
+            const sessionId = `test-session-${Date.now()}`;
+
+            const payload = {
+                sessionId: sessionId,
+                stepId: '13903ad8-e4f6-4c60-975d-c9e6a6efb6b1',
+                stepNumber: 1,
+                answerType: 'button',
+                answerData: { type: 'option', value: 'Test Button' },
+                userName: 'Test User',
+                email: 'test@example.com',
+                completed: false,
+                duration: 10
+            };
+
+            console.log('Sending payload:', payload);
+            document.getElementById('result').textContent = 'Sending request...\n' + JSON.stringify(payload, null, 2);
+
+            try {
+                const response = await fetch(`http://localhost:3002/api/campaigns/${campaignId}/responses`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                console.log('Response:', result);
+                document.getElementById('result').textContent =
+                    `Status: ${response.status}\n\n` +
+                    JSON.stringify(result, null, 2);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

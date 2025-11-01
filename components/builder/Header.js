@@ -1,4 +1,7 @@
+import { useRouter } from 'next/router';
+
 export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges, campaignId }) {
+  const router = useRouter();
   const getSaveStatusDisplay = () => {
     switch (saveStatus) {
       case 'saving':
@@ -34,7 +37,11 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
   return (
     <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm z-10">
       <div className="flex items-center gap-4">
-        <button className="p-2 hover:bg-gray-100 rounded transition">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="p-2 hover:bg-gray-100 rounded transition"
+          title="Back to Dashboard"
+        >
           <i className="fas fa-arrow-left text-gray-600"></i>
         </button>
         <input
@@ -67,7 +74,18 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
         <button className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition">
           <i className="fas fa-cog mr-1"></i> Settings
         </button>
-        <button className="px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition">
+        <button
+          onClick={() => {
+            if (campaignId) {
+              const url = `${window.location.origin}/campaign/${campaignId}`;
+              navigator.clipboard.writeText(url);
+              alert(`Campaign URL copied to clipboard!\n\n${url}`);
+            } else {
+              alert('Please save the campaign first');
+            }
+          }}
+          className="px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
+        >
           <i className="fas fa-share mr-2"></i> Share
         </button>
       </div>
