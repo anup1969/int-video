@@ -22,6 +22,7 @@ export default function CampaignViewer() {
   const [campaignEnded, setCampaignEnded] = useState(false);
   const [endConfig, setEndConfig] = useState(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   // Response tracking
   const sessionId = useRef(null);
@@ -269,6 +270,18 @@ export default function CampaignViewer() {
     }
   };
 
+  const handlePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black">
       {/* Fullscreen Video Background */}
@@ -322,9 +335,31 @@ export default function CampaignViewer() {
         </button>
       )}
 
-      {/* Step Progress - Top Right */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-black/60 backdrop-blur-md text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm z-20">
-        Step {currentStepIndex + 1} of {steps.length}
+      {/* Top Right Controls */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2 sm:gap-3 z-20">
+        {/* Play/Pause Button */}
+        {currentStep.videoUrl && (
+          <button
+            onClick={handlePlayPause}
+            className="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 sm:p-3 rounded-lg transition"
+            aria-label={isPlaying ? 'Pause video' : 'Play video'}
+          >
+            {isPlaying ? (
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+          </button>
+        )}
+
+        {/* Step Progress */}
+        <div className="bg-black/60 backdrop-blur-md text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm">
+          Step {currentStepIndex + 1} of {steps.length}
+        </div>
       </div>
 
       {/* Bottom Overlay - Contains all interactive elements */}
