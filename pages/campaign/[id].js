@@ -278,7 +278,7 @@ export default function CampaignViewer() {
           autoPlay
           muted={isMuted}
           playsInline
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-contain"
           src={currentStep.videoUrl}
         >
           Your browser does not support the video tag.
