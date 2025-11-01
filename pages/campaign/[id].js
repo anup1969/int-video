@@ -1,7 +1,12 @@
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { answerTypes } from '../../lib/utils/constants';
 import packageInfo from '../../package.json';
+
+// Generate unique session ID
+const generateSessionId = () => {
+  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
 
 export default function CampaignViewer() {
   const router = useRouter();
@@ -17,8 +22,18 @@ export default function CampaignViewer() {
   const [campaignEnded, setCampaignEnded] = useState(false);
   const [endConfig, setEndConfig] = useState(null);
 
+  // Response tracking
+  const sessionId = useRef(null);
+  const startTime = useRef(null);
+
   useEffect(() => {
     if (!id) return;
+
+    // Initialize session tracking
+    if (!sessionId.current) {
+      sessionId.current = generateSessionId();
+      startTime.current = Date.now();
+    }
 
     // Load campaign from API
     fetch(`/api/campaigns/${id}`)
@@ -118,7 +133,54 @@ export default function CampaignViewer() {
     setShowResponseUI(type);
   };
 
-  const handleSubmitResponse = (responseType = null, optionValue = null) => {
+  // Save response to API
+  const saveResponse = async (answerData, isCompleted = false) => {
+    try {
+      const duration = startTime.current ? Math.floor((Date.now() - startTime.current) / 1000) : 0;
+
+      const responsePayload = {
+        sessionId: sessionId.current,
+        stepId: currentStep.id,
+        stepNumber: currentStep.stepNumber,
+        answerType: currentStep.answerType,
+        answerData: answerData,
+        completed: isCompleted,
+        duration: duration,
+        deviceType: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        userAgent: navigator.userAgent
+      };
+
+      // Extract contact info if available
+      if (formData.name) responsePayload.userName = formData.name;
+      if (formData.email) responsePayload.email = formData.email;
+
+      await fetch(`/api/campaigns/${id}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(responsePayload)
+      });
+    } catch (error) {
+      console.error('Failed to save response:', error);
+    }
+  };
+
+  const handleSubmitResponse = async (responseType = null, optionValue = null) => {
+    // Prepare answer data based on response type
+    let answerData = {};
+    if (responseType === 'text') {
+      answerData = { type: 'text', value: textResponse };
+    } else if (responseType === 'video' || responseType === 'audio') {
+      answerData = { type: responseType, value: 'recorded' };
+    } else if (optionValue !== null) {
+      answerData = { type: 'selection', value: optionValue };
+    } else if (currentStep.answerType === 'contact-form') {
+      answerData = { type: 'contact-form', value: formData };
+    }
+
+    // Save response before navigation
+    await saveResponse(answerData, false);
+
+
     // Check if there are logic rules to follow
     if (currentNode?.logicRules && currentNode.logicRules.length > 0) {
       const matchingRule = currentNode.logicRules.find(rule => {
@@ -133,6 +195,7 @@ export default function CampaignViewer() {
 
       if (matchingRule) {
         if (matchingRule.targetType === 'end') {
+          await saveResponse(answerData, true);
           setEndConfig({
             endMessage: matchingRule.endMessage || 'Thank you for your response!',
             ctaText: matchingRule.ctaText,
@@ -161,6 +224,7 @@ export default function CampaignViewer() {
     if (currentStepIndex < steps.length - 1) {
       handleNext();
     } else {
+      await saveResponse(answerData, true);
       setCampaignEnded(true);
       setEndConfig({ endMessage: 'Thank you for completing this campaign!' });
     }
