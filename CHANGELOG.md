@@ -18,7 +18,7 @@ Bug fixes for logic rules and URL redirects.
 - Campaign viewer no longer shows "campaign not found" error when clicking URL redirect buttons
 
 ### Technical Details
-- Commit: (will be added after commit)
+- Commit: 26513e1
 - Files Modified:
   - pages/campaign/[id].js - Fixed logic rule matching and URL protocol handling
   - package.json - Version bump to 1.1.1
