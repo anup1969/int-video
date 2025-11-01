@@ -23,7 +23,25 @@ export default function CampaignViewer() {
     fetch(`/api/campaigns/${id}`)
       .then(res => res.json())
       .then(data => {
-        setCampaign(data);
+        // Transform API response to match expected structure
+        const transformedData = {
+          ...data.campaign,
+          nodes: data.steps.map(step => ({
+            id: step.id,
+            type: 'video',
+            stepNumber: step.step_number,
+            label: step.label,
+            answerType: step.answer_type,
+            videoUrl: step.data?.videoUrl || null,
+            mcOptions: step.data?.mcOptions || [],
+            buttonOptions: step.data?.buttonOptions || [],
+            contactFormFields: step.data?.contactFormFields || [],
+            enabledResponseTypes: step.data?.enabledResponseTypes || {},
+            showContactForm: step.data?.showContactForm || false,
+            logicRules: step.data?.logicRules || [],
+          }))
+        };
+        setCampaign(transformedData);
         setLoading(false);
       })
       .catch(err => {
