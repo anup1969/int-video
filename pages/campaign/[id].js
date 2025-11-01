@@ -315,8 +315,9 @@ export default function CampaignViewer() {
 
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden bg-black"
+      className="fixed inset-0 w-full h-full overflow-hidden bg-black"
       onMouseMove={handleMouseMove}
+      style={{ height: '100vh', height: '100dvh' }}
     >
       {/* Fullscreen Video Background */}
       {currentStep.videoUrl ? (
@@ -395,11 +396,6 @@ export default function CampaignViewer() {
           </button>
         </div>
       )}
-
-      {/* Step Progress - Top Right */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-black/60 backdrop-blur-md text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm z-20">
-        Step {currentStepIndex + 1} of {steps.length}
-      </div>
 
       {/* Bottom Overlay - Contains all interactive elements */}
       <div className="absolute bottom-0 left-0 right-0 z-10">
