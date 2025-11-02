@@ -12,6 +12,7 @@ export default function ResponseViewer() {
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'completed', 'incomplete'
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'list'
+  const [selectedFormStep, setSelectedFormStep] = useState(null); // For form modal
 
   useEffect(() => {
     if (!id) return;
@@ -54,7 +55,8 @@ export default function ResponseViewer() {
             step: step.stepNumber,
             type: step.answerType,
             slideType: step.slideType || 'video', // video, text, etc.
-            value: formatAnswerValue(step.answerData)
+            value: formatAnswerValue(step.answerData),
+            rawData: step.answerData // Keep raw data for form display
           }))
         };
       });
@@ -85,6 +87,33 @@ export default function ResponseViewer() {
     }
 
     return JSON.stringify(answerData.value);
+  };
+
+  // Get form data for a specific step across all responses
+  const getFormDataForStep = (stepNumber) => {
+    const formResponses = [];
+    const formFields = new Set();
+
+    filteredResponses.forEach(response => {
+      const stepResponse = response.responses.find(r => r.step === stepNumber);
+      if (stepResponse && stepResponse.rawData?.type === 'contact-form') {
+        const formData = stepResponse.rawData.value || {};
+
+        // Collect all form field keys
+        Object.keys(formData).forEach(key => formFields.add(key));
+
+        formResponses.push({
+          userName: response.userName,
+          email: response.email,
+          formData: formData
+        });
+      }
+    });
+
+    return {
+      responses: formResponses,
+      fields: Array.from(formFields)
+    };
   };
 
   const filteredResponses = responses.filter(response => {
@@ -339,12 +368,28 @@ export default function ResponseViewer() {
                     else if (resp.type === 'video') answerTypeLabel = 'Video';
                     else if (resp.type === 'audio') answerTypeLabel = 'Audio';
                     else if (resp.type === 'button') answerTypeLabel = 'Button';
+                    else if (resp.type === 'contact-form') answerTypeLabel = 'Form';
+
+                    const isFormType = resp.type === 'contact-form';
 
                     return (
                       <th key={idx} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200 min-w-[200px]">
-                        <div>Step {resp.step}</div>
-                        <div className="text-xs font-normal text-gray-500 mt-1">
-                          {slideIcon} {answerTypeLabel}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <div>Step {resp.step}</div>
+                            <div className="text-xs font-normal text-gray-500 mt-1">
+                              {slideIcon} {answerTypeLabel}
+                            </div>
+                          </div>
+                          {isFormType && (
+                            <button
+                              onClick={() => setSelectedFormStep(resp.step)}
+                              className="p-1.5 hover:bg-violet-100 rounded transition"
+                              title="View all form responses"
+                            >
+                              <i className="fas fa-table text-violet-600"></i>
+                            </button>
+                          )}
                         </div>
                       </th>
                     );
@@ -536,6 +581,88 @@ export default function ResponseViewer() {
                   })}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form Responses Modal */}
+      {selectedFormStep && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedFormStep(null)}
+        >
+          <div
+            className="bg-white rounded-lg max-w-5xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Form Responses - Step {selectedFormStep}</h3>
+                <p className="text-sm text-gray-600">All contact form submissions for this step</p>
+              </div>
+              <button
+                onClick={() => setSelectedFormStep(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <i className="fas fa-times text-gray-500"></i>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {(() => {
+                const formData = getFormDataForStep(selectedFormStep);
+                const { responses: formResponses, fields } = formData;
+
+                if (formResponses.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-gray-500">
+                      No form responses found for this step
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse border border-gray-200">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-b border-gray-200 sticky left-0 bg-gray-50">
+                            Subscriber
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-b border-gray-200">
+                            Email
+                          </th>
+                          {fields.map((field, idx) => (
+                            <th key={idx} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-b border-gray-200 capitalize">
+                              {field}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {formResponses.map((response, rowIdx) => (
+                          <tr key={rowIdx} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm text-gray-900 border-r border-b border-gray-200 sticky left-0 bg-white font-medium">
+                              {response.userName}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 border-r border-b border-gray-200">
+                              {response.email}
+                            </td>
+                            {fields.map((field, cellIdx) => (
+                              <td key={cellIdx} className="px-4 py-3 text-sm text-gray-700 border-r border-b border-gray-200">
+                                {response.formData[field] || '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
