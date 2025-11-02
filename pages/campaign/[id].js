@@ -546,11 +546,7 @@ export default function CampaignViewer() {
                   ) : (
                     <div className="text-center text-white/60 py-4">No options available</div>
                   )
-                ) : (
-                  <div className="text-center text-white/70 py-4 text-sm sm:text-base">
-                    Options will appear in {currentStep.buttonShowTime} seconds...
-                  </div>
-                )}
+                ) : null}
               </div>
             )}
 
@@ -571,11 +567,7 @@ export default function CampaignViewer() {
                   ) : (
                     <div className="text-center text-white/60 py-4">No buttons available</div>
                   )
-                ) : (
-                  <div className="text-center text-white/70 py-4 text-sm sm:text-base">
-                    Buttons will appear in {currentStep.buttonShowTime} seconds...
-                  </div>
-                )}
+                ) : null}
               </div>
             )}
 
