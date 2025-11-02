@@ -19,11 +19,13 @@ export default function FlowBuilder() {
   // Campaign & Save State
   const [campaignId, setCampaignId] = useState(null);
   const [campaignName, setCampaignName] = useState('Untitled Campaign');
+  const [usageLimit, setUsageLimit] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved, error
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // UI State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // State management
   const [nodes, setNodes] = useState([
@@ -92,6 +94,9 @@ export default function FlowBuilder() {
 
           setCampaignId(campaign.id);
           setCampaignName(campaign.name);
+          if (campaign.usage_limit) {
+            setUsageLimit(campaign.usage_limit);
+          }
 
           // Convert steps to nodes format
           if (steps && steps.length > 0) {
@@ -207,7 +212,7 @@ export default function FlowBuilder() {
       body: JSON.stringify({
         nodes: videoNodes, // Don't save start node
         connections,
-        settings: { name: campaignName }
+        settings: { name: campaignName, usageLimit }
       })
     });
 
@@ -232,6 +237,9 @@ export default function FlowBuilder() {
       // Set campaign info
       setCampaignId(campaign.id);
       setCampaignName(campaign.name);
+      if (campaign.usage_limit) {
+        setUsageLimit(campaign.usage_limit);
+      }
 
       // Convert steps to nodes
       const loadedNodes = [
@@ -814,7 +822,15 @@ export default function FlowBuilder() {
       />
 
       <div className="flex-1 flex flex-col">
-        <Header campaignName={campaignName} scale={scale} onSave={saveCampaign} saveStatus={saveStatus} hasUnsavedChanges={hasUnsavedChanges} campaignId={campaignId} />
+        <Header
+          campaignName={campaignName}
+          scale={scale}
+          onSave={saveCampaign}
+          saveStatus={saveStatus}
+          hasUnsavedChanges={hasUnsavedChanges}
+          campaignId={campaignId}
+          onOpenSettings={() => setShowSettingsModal(true)}
+        />
 
         <div
           ref={containerRef}
@@ -936,6 +952,77 @@ export default function FlowBuilder() {
         onPrev={handlePreviewPrev}
         onReset={handlePreviewReset}
       />
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Campaign Settings</h2>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Campaign Name
+                </label>
+                <input
+                  type="text"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Usage Limit (Optional)
+                  <span className="text-gray-500 font-normal ml-2">
+                    Limit unique visitors
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Leave empty for unlimited views"
+                  value={usageLimit || ''}
+                  onChange={(e) => setUsageLimit(e.target.value ? parseInt(e.target.value) : null)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                />
+                {usageLimit && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Campaign will be disabled after {usageLimit} unique {usageLimit === 1 ? 'visitor' : 'visitors'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowSettingsModal(false);
+                  setHasUnsavedChanges(true);
+                }}
+                className="px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
+              >
+                Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

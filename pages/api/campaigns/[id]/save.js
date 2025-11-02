@@ -16,6 +16,7 @@ export default async function handler(req, res) {
       .from('campaigns')
       .update({
         name: settings?.name || 'Untitled Campaign',
+        usage_limit: settings?.usageLimit || null,
         settings: settings || {},
       })
       .eq('id', id)

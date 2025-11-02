@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 
-export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges, campaignId }) {
+export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges, campaignId, onOpenSettings }) {
   const router = useRouter();
   const getSaveStatusDisplay = () => {
     switch (saveStatus) {
@@ -71,7 +71,10 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
             <i className="fas fa-external-link-alt mr-2"></i> View Campaign
           </button>
         )}
-        <button className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition">
+        <button
+          onClick={onOpenSettings}
+          className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition"
+        >
           <i className="fas fa-cog mr-1"></i> Settings
         </button>
         <button

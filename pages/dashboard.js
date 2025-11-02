@@ -354,10 +354,15 @@ export default function Dashboard() {
 function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onViewResponses, getStatusBadge, formatDate }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showCopyToast, setShowCopyToast] = useState(false);
+  const [showShortCopyToast, setShowShortCopyToast] = useState(false);
+  const [generatingShortUrl, setGeneratingShortUrl] = useState(false);
 
   const stepCount = campaign.data?.nodes?.filter(n => n.type === 'video').length || 0;
   const responseCount = campaign.response_count || 0;
+  const usageLimit = campaign.usage_limit;
+  const usageCount = campaign.usage_count || 0;
   const campaignUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/campaign/${campaign.id}`;
+  const shortUrl = campaign.short_url ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${campaign.short_url}` : null;
 
   // Debug logging
   console.log(`Campaign: ${campaign.name}, Response Count: ${responseCount}, Has onDelete: ${typeof onDelete}`);
@@ -367,6 +372,39 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
     setShowCopyToast(true);
     setTimeout(() => setShowCopyToast(false), 2000);
     setShowMenu(false);
+  };
+
+  const handleCopyShortUrl = async () => {
+    if (shortUrl) {
+      // Short URL already exists, just copy it
+      navigator.clipboard.writeText(shortUrl);
+      setShowShortCopyToast(true);
+      setTimeout(() => setShowShortCopyToast(false), 2000);
+    } else {
+      // Generate short URL first
+      setGeneratingShortUrl(true);
+      try {
+        const response = await fetch(`/api/campaigns/${campaign.id}/generate-short-url`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+
+        if (data.shortUrl) {
+          const newShortUrl = `${window.location.origin}/${data.shortUrl}`;
+          navigator.clipboard.writeText(newShortUrl);
+          setShowShortCopyToast(true);
+          setTimeout(() => setShowShortCopyToast(false), 2000);
+
+          // Reload campaigns to get updated short URL
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Failed to generate short URL:', error);
+        alert('Failed to generate short URL');
+      } finally {
+        setGeneratingShortUrl(false);
+      }
+    }
   };
 
   if (viewMode === 'list') {
@@ -379,11 +417,17 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 mb-1">{campaign.name}</h3>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-3 mb-1">
                 <span className="text-sm text-violet-600 font-medium">
                   <i className="fas fa-users mr-1"></i>
                   {responseCount} {responseCount === 1 ? 'response' : 'responses'}
                 </span>
+                {usageLimit && (
+                  <span className="text-sm text-orange-600 font-medium">
+                    <i className="fas fa-eye mr-1"></i>
+                    {usageCount}/{usageLimit} views
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <span>{stepCount} steps</span>
@@ -413,9 +457,22 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
               <button
                 onClick={handleCopyUrl}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
-                title="Copy URL"
+                title="Copy Full URL"
               >
                 <i className="fas fa-link text-gray-600"></i>
+              </button>
+
+              <button
+                onClick={handleCopyShortUrl}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                title={shortUrl ? "Copy Short URL" : "Generate & Copy Short URL"}
+                disabled={generatingShortUrl}
+              >
+                {generatingShortUrl ? (
+                  <i className="fas fa-spinner fa-spin text-gray-600"></i>
+                ) : (
+                  <i className="fas fa-compress-alt text-gray-600"></i>
+                )}
               </button>
 
               <button
@@ -444,7 +501,12 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
 
               {showCopyToast && (
                 <div className="absolute right-0 top-10 bg-green-600 text-white px-3 py-1 rounded-lg shadow-lg text-xs whitespace-nowrap z-20">
-                  URL copied!
+                  Full URL copied!
+                </div>
+              )}
+              {showShortCopyToast && (
+                <div className="absolute right-0 top-10 bg-blue-600 text-white px-3 py-1 rounded-lg shadow-lg text-xs whitespace-nowrap z-20">
+                  Short URL copied!
                 </div>
               )}
             </div>
@@ -477,9 +539,22 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
             <button
               onClick={handleCopyUrl}
               className="p-1.5 hover:bg-gray-100 rounded transition"
-              title="Copy URL"
+              title="Copy Full URL"
             >
               <i className="fas fa-link text-gray-600 text-sm"></i>
+            </button>
+
+            <button
+              onClick={handleCopyShortUrl}
+              className="p-1.5 hover:bg-gray-100 rounded transition"
+              title={shortUrl ? "Copy Short URL" : "Generate & Copy Short URL"}
+              disabled={generatingShortUrl}
+            >
+              {generatingShortUrl ? (
+                <i className="fas fa-spinner fa-spin text-gray-600 text-sm"></i>
+              ) : (
+                <i className="fas fa-compress-alt text-gray-600 text-sm"></i>
+              )}
             </button>
 
             <button
@@ -508,17 +583,28 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
 
             {showCopyToast && (
               <div className="absolute right-0 top-8 bg-green-600 text-white px-3 py-1 rounded-lg shadow-lg text-xs whitespace-nowrap z-20">
-                URL copied!
+                Full URL copied!
+              </div>
+            )}
+            {showShortCopyToast && (
+              <div className="absolute right-0 top-8 bg-blue-600 text-white px-3 py-1 rounded-lg shadow-lg text-xs whitespace-nowrap z-20">
+                Short URL copied!
               </div>
             )}
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className="mb-2 flex items-center gap-3">
           <span className="text-sm text-violet-600 font-medium">
             <i className="fas fa-users mr-1"></i>
             {responseCount} {responseCount === 1 ? 'response' : 'responses'}
           </span>
+          {usageLimit && (
+            <span className="text-sm text-orange-600 font-medium">
+              <i className="fas fa-eye mr-1"></i>
+              {usageCount}/{usageLimit}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 mb-3">

@@ -14,6 +14,7 @@ export default function CampaignViewer() {
 
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [limitReached, setLimitReached] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [showResponseUI, setShowResponseUI] = useState(null);
   const [textResponse, setTextResponse] = useState('');
@@ -79,6 +80,28 @@ export default function CampaignViewer() {
       });
   }, [id]);
 
+  // Track visit and check usage limit
+  useEffect(() => {
+    if (!id) return;
+
+    const trackVisit = async () => {
+      try {
+        const response = await fetch(`/api/campaigns/${id}/track-visit`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+
+        if (data.limitReached) {
+          setLimitReached(true);
+        }
+      } catch (error) {
+        console.error('Error tracking visit:', error);
+      }
+    };
+
+    trackVisit();
+  }, [id]);
+
   // Handle button delay based on buttonShowTime
   // Must be before conditional returns to comply with Rules of Hooks
   useEffect(() => {
@@ -125,6 +148,22 @@ export default function CampaignViewer() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto mb-4"></div>
           <div className="text-gray-600">Loading campaign...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (limitReached) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="text-6xl mb-6">🚫</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Campaign No Longer Available
+          </h1>
+          <p className="text-gray-600 text-lg">
+            This campaign has reached its usage limit and is no longer accepting responses.
+          </p>
         </div>
       </div>
     );
