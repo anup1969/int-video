@@ -28,26 +28,19 @@ async function getCampaigns(req, res) {
     // Get response counts for all campaigns
     const campaignsWithCounts = await Promise.all(
       data.map(async (campaign) => {
-        // Get all completed responses for this campaign
+        // Get all responses for this campaign (including incomplete)
         const { data: responses, error: countError } = await supabase
           .from('responses')
-          .select('id, data')
+          .select('id')
           .eq('campaign_id', campaign.id)
-          .eq('completed', true)
 
         if (countError) {
           console.error('Error counting responses:', countError)
           return { ...campaign, response_count: 0 }
         }
 
-        // Count unique sessions from data.sessionId
-        const uniqueSessions = new Set(
-          responses
-            ?.map(r => r.data?.sessionId)
-            .filter(sid => sid) || []
-        )
-
-        return { ...campaign, response_count: uniqueSessions.size }
+        // Return total count of all responses
+        return { ...campaign, response_count: responses?.length || 0 }
       })
     )
 
