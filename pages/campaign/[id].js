@@ -79,6 +79,46 @@ export default function CampaignViewer() {
       });
   }, [id]);
 
+  // Handle button delay based on buttonShowTime
+  // Must be before conditional returns to comply with Rules of Hooks
+  useEffect(() => {
+    if (!campaign || loading || campaignEnded) return;
+
+    const steps = campaign.nodes
+      ?.filter(n => n.type === 'video')
+      .sort((a, b) => a.stepNumber - b.stepNumber);
+
+    const currentStep = steps?.[currentStepIndex];
+    if (!currentStep) return;
+
+    // Clear any existing timeout
+    if (buttonDelayTimeout.current) {
+      clearTimeout(buttonDelayTimeout.current);
+    }
+
+    const delayTime = (currentStep.buttonShowTime || 0) * 1000; // Convert seconds to milliseconds
+
+    if (delayTime > 0) {
+      // Hide buttons initially
+      setShowButtons(false);
+
+      // Show buttons after delay
+      buttonDelayTimeout.current = setTimeout(() => {
+        setShowButtons(true);
+      }, delayTime);
+    } else {
+      // Show buttons immediately if no delay
+      setShowButtons(true);
+    }
+
+    // Cleanup on unmount or step change
+    return () => {
+      if (buttonDelayTimeout.current) {
+        clearTimeout(buttonDelayTimeout.current);
+      }
+    };
+  }, [campaign, loading, campaignEnded, currentStepIndex]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -129,40 +169,12 @@ export default function CampaignViewer() {
     );
   }
 
+  const steps = campaign.nodes
+    .filter(n => n.type === 'video')
+    .sort((a, b) => a.stepNumber - b.stepNumber);
+
   const currentStep = steps[currentStepIndex];
   const currentNode = campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber);
-
-  // Handle button delay based on buttonShowTime
-  useEffect(() => {
-    if (!currentStep) return;
-
-    // Clear any existing timeout
-    if (buttonDelayTimeout.current) {
-      clearTimeout(buttonDelayTimeout.current);
-    }
-
-    const delayTime = (currentStep.buttonShowTime || 0) * 1000; // Convert seconds to milliseconds
-
-    if (delayTime > 0) {
-      // Hide buttons initially
-      setShowButtons(false);
-
-      // Show buttons after delay
-      buttonDelayTimeout.current = setTimeout(() => {
-        setShowButtons(true);
-      }, delayTime);
-    } else {
-      // Show buttons immediately if no delay
-      setShowButtons(true);
-    }
-
-    // Cleanup on unmount or step change
-    return () => {
-      if (buttonDelayTimeout.current) {
-        clearTimeout(buttonDelayTimeout.current);
-      }
-    };
-  }, [currentStepIndex]); // Only depend on step index, not the whole step object
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
