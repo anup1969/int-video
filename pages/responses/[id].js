@@ -11,6 +11,7 @@ export default function ResponseViewer() {
   const [selectedResponse, setSelectedResponse] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'completed', 'incomplete'
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'list'
 
   useEffect(() => {
     if (!id) return;
@@ -262,6 +263,32 @@ export default function ResponseViewer() {
                 <option value="completed">Completed</option>
                 <option value="incomplete">Incomplete</option>
               </select>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1 border border-gray-300 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1.5 rounded transition ${
+                    viewMode === 'table'
+                      ? 'bg-violet-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  title="Table View"
+                >
+                  <i className="fas fa-table"></i>
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1.5 rounded transition ${
+                    viewMode === 'list'
+                      ? 'bg-violet-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  title="List View"
+                >
+                  <i className="fas fa-list"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -288,7 +315,69 @@ export default function ResponseViewer() {
               </button>
             )}
           </div>
+        ) : viewMode === 'table' ? (
+          /* Spreadsheet-style Table View */
+          <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b-2 border-gray-200">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-10">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200">
+                    Submitted
+                  </th>
+                  {/* Dynamic columns for each question */}
+                  {filteredResponses[0]?.responses.map((resp, idx) => {
+                    const slideIcon = resp.slideType === 'text' ? '📄' : '🎬';
+                    let answerTypeLabel = '';
+                    if (resp.type === 'multiple-choice') answerTypeLabel = 'MCQ';
+                    else if (resp.type === 'text' || resp.type === 'open-ended') answerTypeLabel = 'Text';
+                    else if (resp.type === 'video') answerTypeLabel = 'Video';
+                    else if (resp.type === 'audio') answerTypeLabel = 'Audio';
+                    else if (resp.type === 'button') answerTypeLabel = 'Button';
+
+                    return (
+                      <th key={idx} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200 min-w-[200px]">
+                        <div>Step {resp.step}</div>
+                        <div className="text-xs font-normal text-gray-500 mt-1">
+                          {slideIcon} {answerTypeLabel}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredResponses.map((response, rowIdx) => (
+                  <tr key={response.id} className="border-b border-gray-200 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200 sticky left-0 bg-white font-medium">
+                      {response.userName}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-200">
+                      {response.email}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-200">
+                      {formatDate(response.completedAt)}
+                    </td>
+                    {/* Dynamic answer cells */}
+                    {response.responses.map((resp, cellIdx) => (
+                      <td key={cellIdx} className="px-4 py-3 text-sm text-gray-700 border-r border-gray-200">
+                        <div className="max-w-xs truncate" title={resp.value}>
+                          {resp.value}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
+          /* List View */
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -411,34 +500,40 @@ export default function ResponseViewer() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-4">Response Journey</h4>
                 <div className="space-y-4">
-                  {selectedResponse.responses.map((resp, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-violet-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
-                          {resp.step}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-1 rounded">
-                              {resp.slideType === 'video' && '🎬 Video Slide'}
-                              {resp.slideType === 'text' && '📄 Text Slide'}
-                              {(!resp.slideType || resp.slideType === 'video') && '🎬 Video Slide'}
-                            </span>
-                            <span className="text-sm text-gray-600">
-                              {resp.type === 'multiple-choice' && '→ 📊 Multiple Choice'}
-                              {resp.type === 'text' && '→ 📝 Text Response'}
-                              {resp.type === 'video' && '→ 📹 Video Response'}
-                              {resp.type === 'audio' && '→ 🎤 Audio Response'}
-                              {resp.type === 'button' && '→ 🔘 Button Response'}
-                            </span>
+                  {selectedResponse.responses.map((resp, idx) => {
+                    // Determine slide type display
+                    const slideIcon = resp.slideType === 'text' ? '📄' : '🎬';
+                    const slideLabel = resp.slideType === 'text' ? 'Text Slide' : 'Video Slide';
+
+                    // Determine answer type display
+                    let answerTypeLabel = '';
+                    if (resp.type === 'multiple-choice') answerTypeLabel = 'MCQ';
+                    else if (resp.type === 'text') answerTypeLabel = 'Open-ended';
+                    else if (resp.type === 'video') answerTypeLabel = 'Video';
+                    else if (resp.type === 'audio') answerTypeLabel = 'Audio';
+                    else if (resp.type === 'button') answerTypeLabel = 'Button';
+                    else if (resp.type === 'open-ended') answerTypeLabel = 'Open-ended';
+
+                    return (
+                      <div key={idx} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-violet-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            {resp.step}
                           </div>
-                          <div className="text-gray-900 font-medium">
-                            {resp.value}
+                          <div className="flex-1">
+                            <div className="mb-2">
+                              <span className="text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-1 rounded">
+                                {slideIcon} {slideLabel} ({answerTypeLabel})
+                              </span>
+                            </div>
+                            <div className="text-gray-900 font-medium">
+                              {resp.value}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
