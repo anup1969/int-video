@@ -61,6 +61,10 @@ export default function CampaignViewer() {
             enabledResponseTypes: step.data?.enabledResponseTypes || {},
             showContactForm: step.data?.showContactForm || false,
             logicRules: step.data?.logicRules || [],
+            slideType: step.data?.slideType || 'video',
+            textContent: step.data?.textContent || '',
+            backgroundColor: step.data?.backgroundColor || '',
+            fontFamily: step.data?.fontFamily || '',
           }))
         };
         setCampaign(transformedData);
@@ -329,8 +333,20 @@ export default function CampaignViewer() {
       onMouseMove={handleMouseMove}
       style={{ height: '100vh', height: '100dvh' }}
     >
-      {/* Fullscreen Video Background */}
-      {currentStep.videoUrl ? (
+      {/* Fullscreen Video or Text Background */}
+      {currentStep.slideType === 'text' ? (
+        <div
+          className="absolute inset-0 w-full h-full flex items-center justify-center p-6 sm:p-8 md:p-12 lg:p-16"
+          style={{ background: currentStep.backgroundColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+        >
+          <p
+            className="text-white text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold break-words max-w-4xl leading-tight"
+            style={{ fontFamily: currentStep.fontFamily || 'system-ui, -apple-system, sans-serif' }}
+          >
+            {currentStep.textContent || ''}
+          </p>
+        </div>
+      ) : currentStep.videoUrl ? (
         <video
           ref={videoRef}
           autoPlay

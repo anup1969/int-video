@@ -120,6 +120,28 @@ export default function EditModal({
 
 // Video Tab Component
 function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeContactFormField, addContactFormField }) {
+  const slideType = editingStep.slideType || 'video';
+
+  const backgroundColors = [
+    { name: 'Purple Gradient', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+    { name: 'Blue Gradient', value: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)' },
+    { name: 'Green Gradient', value: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' },
+    { name: 'Orange Gradient', value: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
+    { name: 'Red Gradient', value: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+    { name: 'Dark Gradient', value: 'linear-gradient(135deg, #4b6cb7 0%, #182848 100%)' },
+    { name: 'Solid Purple', value: '#8b5cf6' },
+    { name: 'Solid Blue', value: '#3b82f6' },
+    { name: 'Solid Green', value: '#10b981' },
+    { name: 'Solid Black', value: '#1f2937' },
+  ];
+
+  const fonts = [
+    { name: 'Default (Sans)', value: 'system-ui, -apple-system, sans-serif' },
+    { name: 'Serif', value: 'Georgia, serif' },
+    { name: 'Monospace', value: 'Courier New, monospace' },
+    { name: 'Cursive', value: 'cursive' },
+  ];
+
   return (
     <div className="space-y-4">
       <div>
@@ -132,10 +154,110 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
           placeholder="e.g., Welcome Video"
         />
       </div>
-      <VideoUpload
-        currentVideoUrl={editingStep.videoUrl}
-        onVideoUploaded={(url) => setEditingStep({ ...editingStep, videoUrl: url })}
-      />
+
+      {/* Slide Type Selector */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <label className="block text-sm font-semibold text-gray-700 mb-3">Content Type</label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="slideType"
+              value="video"
+              checked={slideType === 'video'}
+              onChange={(e) => setEditingStep({ ...editingStep, slideType: 'video' })}
+              className="w-4 h-4 text-violet-600"
+            />
+            <span className="text-sm font-medium">Video Upload</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="slideType"
+              value="text"
+              checked={slideType === 'text'}
+              onChange={(e) => setEditingStep({ ...editingStep, slideType: 'text' })}
+              className="w-4 h-4 text-violet-600"
+            />
+            <span className="text-sm font-medium">Text Slide</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Video Upload Section */}
+      {slideType === 'video' && (
+        <VideoUpload
+          currentVideoUrl={editingStep.videoUrl}
+          onVideoUploaded={(url) => setEditingStep({ ...editingStep, videoUrl: url })}
+        />
+      )}
+
+      {/* Text Slide Editor */}
+      {slideType === 'text' && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Text Content</label>
+            <textarea
+              value={editingStep.textContent || ''}
+              onChange={(e) => setEditingStep({ ...editingStep, textContent: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+              placeholder="Enter your text here..."
+              rows="4"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Background Color</label>
+            <div className="grid grid-cols-5 gap-2">
+              {backgroundColors.map((color, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setEditingStep({ ...editingStep, backgroundColor: color.value })}
+                  className={`h-12 rounded-lg border-2 transition ${
+                    editingStep.backgroundColor === color.value
+                      ? 'border-violet-600 ring-2 ring-violet-200'
+                      : 'border-gray-300 hover:border-violet-400'
+                  }`}
+                  style={{ background: color.value }}
+                  title={color.name}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Font Style</label>
+            <select
+              value={editingStep.fontFamily || fonts[0].value}
+              onChange={(e) => setEditingStep({ ...editingStep, fontFamily: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            >
+              {fonts.map((font, idx) => (
+                <option key={idx} value={font.value} style={{ fontFamily: font.value }}>
+                  {font.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Preview */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Preview</label>
+            <div
+              className="w-full h-48 rounded-lg flex items-center justify-center p-6"
+              style={{
+                background: editingStep.backgroundColor || backgroundColors[0].value,
+                fontFamily: editingStep.fontFamily || fonts[0].value,
+              }}
+            >
+              <p className="text-white text-center text-xl font-bold break-words max-w-full">
+                {editingStep.textContent || 'Your text will appear here...'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <label className="flex items-center gap-2 cursor-pointer">

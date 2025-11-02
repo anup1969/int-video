@@ -189,11 +189,23 @@ export default function FlowBuilder() {
   };
 
   const saveCampaignState = async (id) => {
+    const videoNodes = nodes.filter(n => n.type === 'video');
+
+    console.log('💾 Saving campaign state:');
+    console.log('  Total nodes:', nodes.length);
+    console.log('  Video nodes:', videoNodes.length);
+    console.log('  Video nodes details:', videoNodes.map(n => ({
+      stepNumber: n.stepNumber,
+      label: n.label,
+      hasVideo: !!n.videoUrl,
+      videoUrl: n.videoUrl
+    })));
+
     const response = await fetch(`/api/campaigns/${id}/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nodes: nodes.filter(n => n.type === 'video'), // Don't save start node
+        nodes: videoNodes, // Don't save start node
         connections,
         settings: { name: campaignName }
       })
@@ -545,6 +557,10 @@ export default function FlowBuilder() {
               enabledResponseTypes: editingStep.enabledResponseTypes,
               showContactForm: editingStep.showContactForm,
               contactFormFields: editingStep.contactFormFields,
+              slideType: editingStep.slideType || 'video',
+              textContent: editingStep.textContent || '',
+              backgroundColor: editingStep.backgroundColor || '',
+              fontFamily: editingStep.fontFamily || '',
             }
           : node
       )
