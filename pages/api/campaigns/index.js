@@ -25,7 +25,34 @@ async function getCampaigns(req, res) {
 
     if (error) throw error
 
-    return res.status(200).json({ campaigns: data })
+    // Get response counts for all campaigns
+    const campaignsWithCounts = await Promise.all(
+      data.map(async (campaign) => {
+        const { count, error: countError } = await supabase
+          .from('responses')
+          .select('session_id', { count: 'exact', head: false })
+          .eq('campaign_id', campaign.id)
+          .eq('completed', true)
+
+        if (countError) {
+          console.error('Error counting responses:', countError)
+          return { ...campaign, response_count: 0 }
+        }
+
+        // Count unique sessions
+        const { data: sessions } = await supabase
+          .from('responses')
+          .select('session_id')
+          .eq('campaign_id', campaign.id)
+          .eq('completed', true)
+
+        const uniqueSessions = new Set(sessions?.map(s => s.session_id) || [])
+
+        return { ...campaign, response_count: uniqueSessions.size }
+      })
+    )
+
+    return res.status(200).json({ campaigns: campaignsWithCounts })
   } catch (error) {
     console.error('Error fetching campaigns:', error)
     return res.status(500).json({ error: error.message })

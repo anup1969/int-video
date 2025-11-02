@@ -348,8 +348,18 @@ export default function Dashboard() {
 
 function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onViewResponses, getStatusBadge, formatDate }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showCopyToast, setShowCopyToast] = useState(false);
 
   const stepCount = campaign.data?.nodes?.filter(n => n.type === 'video').length || 0;
+  const responseCount = campaign.response_count || 0;
+  const campaignUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/campaign/${campaign.id}`;
+
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(campaignUrl);
+    setShowCopyToast(true);
+    setTimeout(() => setShowCopyToast(false), 2000);
+    setShowMenu(false);
+  };
 
   if (viewMode === 'list') {
     return (
@@ -361,6 +371,12 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 mb-1">{campaign.name}</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm text-violet-600 font-medium">
+                  <i className="fas fa-users mr-1"></i>
+                  {responseCount} {responseCount === 1 ? 'response' : 'responses'}
+                </span>
+              </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <span>{stepCount} steps</span>
                 <span>•</span>
@@ -389,6 +405,9 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                   <button onClick={onEdit} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
                     <i className="fas fa-edit text-gray-600"></i> Edit
                   </button>
+                  <button onClick={handleCopyUrl} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
+                    <i className="fas fa-link text-gray-600"></i> Copy URL
+                  </button>
                   <button onClick={onViewResponses} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
                     <i className="fas fa-chart-bar text-gray-600"></i> View Responses
                   </button>
@@ -398,6 +417,11 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                   <button onClick={onDelete} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600">
                     <i className="fas fa-trash"></i> Delete
                   </button>
+                </div>
+              )}
+              {showCopyToast && (
+                <div className="absolute right-0 mt-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
+                  URL copied!
                 </div>
               )}
             </div>
@@ -429,6 +453,9 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                 <button onClick={onEdit} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
                   <i className="fas fa-edit text-gray-600"></i> Edit
                 </button>
+                <button onClick={handleCopyUrl} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
+                  <i className="fas fa-link text-gray-600"></i> Copy URL
+                </button>
                 <button onClick={onViewResponses} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
                   <i className="fas fa-chart-bar text-gray-600"></i> View Responses
                 </button>
@@ -440,7 +467,19 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                 </button>
               </div>
             )}
+            {showCopyToast && (
+              <div className="absolute right-0 mt-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap">
+                URL copied!
+              </div>
+            )}
           </div>
+        </div>
+
+        <div className="mb-2">
+          <span className="text-sm text-violet-600 font-medium">
+            <i className="fas fa-users mr-1"></i>
+            {responseCount} {responseCount === 1 ? 'response' : 'responses'}
+          </span>
         </div>
 
         <div className="flex items-center gap-2 mb-3">
