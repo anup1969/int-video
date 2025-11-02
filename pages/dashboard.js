@@ -3,6 +3,11 @@ import { useRouter } from 'next/router';
 
 export default function Dashboard() {
   const router = useRouter();
+
+  // Version check - if you see this in console, the latest code is loaded
+  useEffect(() => {
+    console.log('Dashboard version: 2.0 - Delete button and Copy URL included');
+  }, []);
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
