@@ -196,6 +196,7 @@ export default function CampaignViewer() {
         stepId: currentStep.id,
         stepNumber: currentStep.stepNumber,
         answerType: currentStep.answerType,
+        slideType: currentStep.slideType || 'video', // Include slide type (video, text, etc.)
         answerData: answerData,
         completed: isCompleted,
         duration: duration,

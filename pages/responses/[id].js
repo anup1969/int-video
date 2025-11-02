@@ -52,6 +52,7 @@ export default function ResponseViewer() {
           responses: (response.data?.steps || []).map(step => ({
             step: step.stepNumber,
             type: step.answerType,
+            slideType: step.slideType || 'video', // video, text, etc.
             value: formatAnswerValue(step.answerData)
           }))
         };
@@ -417,11 +418,19 @@ export default function ResponseViewer() {
                           {resp.step}
                         </div>
                         <div className="flex-1">
-                          <div className="text-sm text-gray-600 mb-1">
-                            {resp.type === 'multiple-choice' && '📊 Multiple Choice'}
-                            {resp.type === 'text' && '📝 Text Response'}
-                            {resp.type === 'video' && '📹 Video Response'}
-                            {resp.type === 'audio' && '🎤 Audio Response'}
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-1 rounded">
+                              {resp.slideType === 'video' && '🎬 Video Slide'}
+                              {resp.slideType === 'text' && '📄 Text Slide'}
+                              {(!resp.slideType || resp.slideType === 'video') && '🎬 Video Slide'}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {resp.type === 'multiple-choice' && '→ 📊 Multiple Choice'}
+                              {resp.type === 'text' && '→ 📝 Text Response'}
+                              {resp.type === 'video' && '→ 📹 Video Response'}
+                              {resp.type === 'audio' && '→ 🎤 Audio Response'}
+                              {resp.type === 'button' && '→ 🔘 Button Response'}
+                            </span>
                           </div>
                           <div className="text-gray-900 font-medium">
                             {resp.value}
