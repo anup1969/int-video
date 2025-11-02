@@ -51,6 +51,10 @@ export default async function handler(req, res) {
         showContactForm: node.showContactForm || false,
         contactFormFields: node.contactFormFields || [],
         logicRules: node.logicRules || [],
+        slideType: node.slideType || 'video',
+        textContent: node.textContent || '',
+        backgroundColor: node.backgroundColor || '',
+        fontFamily: node.fontFamily || '',
       }
     }))
 
