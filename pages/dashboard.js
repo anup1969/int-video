@@ -6,7 +6,7 @@ export default function Dashboard() {
 
   // Version check - if you see this in console, the latest code is loaded
   useEffect(() => {
-    console.log('Dashboard version: 2.0 - Delete button and Copy URL included');
+    console.log('Dashboard version: 3.0 - Response count fixed + Delete button with debug logging');
   }, []);
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -402,7 +402,10 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
 
             <div className="relative">
               <button
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={() => {
+                  console.log('Menu button clicked, current state:', showMenu);
+                  setShowMenu(!showMenu);
+                }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 <i className="fas fa-ellipsis-v text-gray-600"></i>
@@ -422,7 +425,13 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                   <button onClick={onDuplicate} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
                     <i className="fas fa-copy text-gray-600"></i> Duplicate
                   </button>
-                  <button onClick={onDelete} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600">
+                  <button
+                    onClick={() => {
+                      console.log('Delete button clicked!');
+                      onDelete();
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
+                  >
                     <i className="fas fa-trash"></i> Delete
                   </button>
                 </div>
@@ -450,7 +459,10 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
           <h3 className="font-semibold text-gray-900 flex-1">{campaign.name}</h3>
           <div className="relative">
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={() => {
+                console.log('Grid view menu button clicked, current state:', showMenu);
+                setShowMenu(!showMenu);
+              }}
               className="p-1 hover:bg-gray-100 rounded transition"
             >
               <i className="fas fa-ellipsis-v text-gray-600"></i>
@@ -470,7 +482,13 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                 <button onClick={onDuplicate} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
                   <i className="fas fa-copy text-gray-600"></i> Duplicate
                 </button>
-                <button onClick={onDelete} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600">
+                <button
+                  onClick={() => {
+                    console.log('Grid view Delete button clicked!');
+                    onDelete();
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
+                >
                   <i className="fas fa-trash"></i> Delete
                 </button>
               </div>
