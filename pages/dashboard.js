@@ -400,6 +400,18 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
               {campaign.status}
             </span>
 
+            {/* Temporary: Delete button visible outside menu for testing */}
+            <button
+              onClick={() => {
+                console.log('Direct delete button clicked!');
+                onDelete();
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition"
+              title="Delete Campaign"
+            >
+              <i className="fas fa-trash"></i>
+            </button>
+
             <div className="relative">
               <button
                 onClick={() => {
@@ -427,7 +439,7 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                   </button>
                   <button
                     onClick={() => {
-                      console.log('Delete button clicked!');
+                      console.log('Menu Delete button clicked!');
                       onDelete();
                     }}
                     className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
@@ -457,16 +469,29 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
           <h3 className="font-semibold text-gray-900 flex-1">{campaign.name}</h3>
-          <div className="relative">
+          <div className="flex items-center gap-2">
+            {/* Temporary: Delete button visible for testing */}
             <button
               onClick={() => {
-                console.log('Grid view menu button clicked, current state:', showMenu);
-                setShowMenu(!showMenu);
+                console.log('Grid direct delete button clicked!');
+                onDelete();
               }}
-              className="p-1 hover:bg-gray-100 rounded transition"
+              className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition"
+              title="Delete"
             >
-              <i className="fas fa-ellipsis-v text-gray-600"></i>
+              <i className="fas fa-trash"></i>
             </button>
+
+            <div className="relative">
+              <button
+                onClick={() => {
+                  console.log('Grid view menu button clicked, current state:', showMenu);
+                  setShowMenu(!showMenu);
+                }}
+                className="p-1 hover:bg-gray-100 rounded transition"
+              >
+                <i className="fas fa-ellipsis-v text-gray-600"></i>
+              </button>
 
             {showMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
