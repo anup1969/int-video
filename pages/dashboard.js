@@ -400,56 +400,50 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
               {campaign.status}
             </span>
 
-            {/* Temporary: Delete button visible outside menu for testing */}
-            <button
-              onClick={() => {
-                console.log('Direct delete button clicked!');
-                onDelete();
-              }}
-              className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition"
-              title="Delete Campaign"
-            >
-              <i className="fas fa-trash"></i>
-            </button>
-
-            <div className="relative">
+            {/* Action buttons - all visible with icons */}
+            <div className="flex items-center gap-1 relative">
               <button
-                onClick={() => {
-                  console.log('Menu button clicked, current state:', showMenu);
-                  setShowMenu(!showMenu);
-                }}
+                onClick={onEdit}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
+                title="Edit Campaign"
               >
-                <i className="fas fa-ellipsis-v text-gray-600"></i>
+                <i className="fas fa-edit text-gray-600"></i>
               </button>
 
-              {showMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                  <button onClick={onEdit} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                    <i className="fas fa-edit text-gray-600"></i> Edit
-                  </button>
-                  <button onClick={handleCopyUrl} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                    <i className="fas fa-link text-gray-600"></i> Copy URL
-                  </button>
-                  <button onClick={onViewResponses} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                    <i className="fas fa-chart-bar text-gray-600"></i> View Responses
-                  </button>
-                  <button onClick={onDuplicate} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                    <i className="fas fa-copy text-gray-600"></i> Duplicate
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('Menu Delete button clicked!');
-                      onDelete();
-                    }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
-                  >
-                    <i className="fas fa-trash"></i> Delete
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={handleCopyUrl}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                title="Copy URL"
+              >
+                <i className="fas fa-link text-gray-600"></i>
+              </button>
+
+              <button
+                onClick={onViewResponses}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                title="View Responses"
+              >
+                <i className="fas fa-chart-bar text-gray-600"></i>
+              </button>
+
+              <button
+                onClick={onDuplicate}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                title="Duplicate Campaign"
+              >
+                <i className="fas fa-copy text-gray-600"></i>
+              </button>
+
+              <button
+                onClick={onDelete}
+                className="p-2 hover:bg-red-50 rounded-lg transition"
+                title="Delete Campaign"
+              >
+                <i className="fas fa-trash text-red-600"></i>
+              </button>
+
               {showCopyToast && (
-                <div className="absolute right-0 mt-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
+                <div className="absolute right-0 top-10 bg-green-600 text-white px-3 py-1 rounded-lg shadow-lg text-xs whitespace-nowrap z-20">
                   URL copied!
                 </div>
               )}
@@ -469,61 +463,54 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
           <h3 className="font-semibold text-gray-900 flex-1">{campaign.name}</h3>
-          <div className="flex items-center gap-2">
-            {/* Temporary: Delete button visible for testing */}
+
+          {/* Action buttons - all visible with icons */}
+          <div className="flex items-center gap-1 relative">
             <button
-              onClick={() => {
-                console.log('Grid direct delete button clicked!');
-                onDelete();
-              }}
-              className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition"
-              title="Delete"
+              onClick={onEdit}
+              className="p-1.5 hover:bg-gray-100 rounded transition"
+              title="Edit Campaign"
             >
-              <i className="fas fa-trash"></i>
+              <i className="fas fa-edit text-gray-600 text-sm"></i>
             </button>
 
-            <div className="relative">
-              <button
-                onClick={() => {
-                  console.log('Grid view menu button clicked, current state:', showMenu);
-                  setShowMenu(!showMenu);
-                }}
-                className="p-1 hover:bg-gray-100 rounded transition"
-              >
-                <i className="fas fa-ellipsis-v text-gray-600"></i>
-              </button>
+            <button
+              onClick={handleCopyUrl}
+              className="p-1.5 hover:bg-gray-100 rounded transition"
+              title="Copy URL"
+            >
+              <i className="fas fa-link text-gray-600 text-sm"></i>
+            </button>
 
-            {showMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                <button onClick={onEdit} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                  <i className="fas fa-edit text-gray-600"></i> Edit
-                </button>
-                <button onClick={handleCopyUrl} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                  <i className="fas fa-link text-gray-600"></i> Copy URL
-                </button>
-                <button onClick={onViewResponses} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                  <i className="fas fa-chart-bar text-gray-600"></i> View Responses
-                </button>
-                <button onClick={onDuplicate} className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2">
-                  <i className="fas fa-copy text-gray-600"></i> Duplicate
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('Grid view Delete button clicked!');
-                    onDelete();
-                  }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
-                >
-                  <i className="fas fa-trash"></i> Delete
-                </button>
-              </div>
-            )}
+            <button
+              onClick={onViewResponses}
+              className="p-1.5 hover:bg-gray-100 rounded transition"
+              title="View Responses"
+            >
+              <i className="fas fa-chart-bar text-gray-600 text-sm"></i>
+            </button>
+
+            <button
+              onClick={onDuplicate}
+              className="p-1.5 hover:bg-gray-100 rounded transition"
+              title="Duplicate Campaign"
+            >
+              <i className="fas fa-copy text-gray-600 text-sm"></i>
+            </button>
+
+            <button
+              onClick={onDelete}
+              className="p-1.5 hover:bg-red-50 rounded transition"
+              title="Delete Campaign"
+            >
+              <i className="fas fa-trash text-red-600 text-sm"></i>
+            </button>
+
             {showCopyToast && (
-              <div className="absolute right-0 mt-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap">
+              <div className="absolute right-0 top-8 bg-green-600 text-white px-3 py-1 rounded-lg shadow-lg text-xs whitespace-nowrap z-20">
                 URL copied!
               </div>
             )}
-            </div>
           </div>
         </div>
 
