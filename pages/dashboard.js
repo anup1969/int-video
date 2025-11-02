@@ -359,6 +359,9 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
   const responseCount = campaign.response_count || 0;
   const campaignUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/campaign/${campaign.id}`;
 
+  // Debug logging
+  console.log(`Campaign: ${campaign.name}, Response Count: ${responseCount}, Has onDelete: ${typeof onDelete}`);
+
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(campaignUrl);
     setShowCopyToast(true);
