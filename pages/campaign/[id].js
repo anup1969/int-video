@@ -25,12 +25,14 @@ export default function CampaignViewer() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [showPlayButton, setShowPlayButton] = useState(false);
   const [volume, setVolume] = useState(0.6); // 60% default volume
+  const [showButtons, setShowButtons] = useState(false); // For delayed button display
 
   // Response tracking
   const sessionId = useRef(null);
   const startTime = useRef(null);
   const videoRef = useRef(null);
   const hideButtonTimeout = useRef(null);
+  const buttonDelayTimeout = useRef(null);
 
   useEffect(() => {
     if (!id) return;
@@ -57,6 +59,7 @@ export default function CampaignViewer() {
             videoUrl: step.data?.videoUrl || null,
             mcOptions: step.data?.mcOptions || [],
             buttonOptions: step.data?.buttonOptions || [],
+            buttonShowTime: step.data?.buttonShowTime || 0,
             contactFormFields: step.data?.contactFormFields || [],
             enabledResponseTypes: step.data?.enabledResponseTypes || {},
             showContactForm: step.data?.showContactForm || false,
@@ -128,6 +131,38 @@ export default function CampaignViewer() {
 
   const currentStep = steps[currentStepIndex];
   const currentNode = campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber);
+
+  // Handle button delay based on buttonShowTime
+  useEffect(() => {
+    if (!currentStep) return;
+
+    // Clear any existing timeout
+    if (buttonDelayTimeout.current) {
+      clearTimeout(buttonDelayTimeout.current);
+    }
+
+    const delayTime = (currentStep.buttonShowTime || 0) * 1000; // Convert seconds to milliseconds
+
+    if (delayTime > 0) {
+      // Hide buttons initially
+      setShowButtons(false);
+
+      // Show buttons after delay
+      buttonDelayTimeout.current = setTimeout(() => {
+        setShowButtons(true);
+      }, delayTime);
+    } else {
+      // Show buttons immediately if no delay
+      setShowButtons(true);
+    }
+
+    // Cleanup on unmount or step change
+    return () => {
+      if (buttonDelayTimeout.current) {
+        clearTimeout(buttonDelayTimeout.current);
+      }
+    };
+  }, [currentStepIndex, currentStep]);
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
@@ -489,18 +524,24 @@ export default function CampaignViewer() {
             {/* Multiple Choice */}
             {currentStep.answerType === 'multiple-choice' && (
               <div className="space-y-3 sm:space-y-4">
-                {currentStep.mcOptions && currentStep.mcOptions.length > 0 ? (
-                  currentStep.mcOptions.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSubmitResponse(null, opt)}
-                      className="w-full px-6 py-4 sm:py-5 bg-black/60 hover:bg-purple-600/80 backdrop-blur-md text-white rounded-xl font-medium transition text-base sm:text-lg border border-white/10"
-                    >
-                      {opt}
-                    </button>
-                  ))
+                {showButtons ? (
+                  currentStep.mcOptions && currentStep.mcOptions.length > 0 ? (
+                    currentStep.mcOptions.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSubmitResponse(null, opt)}
+                        className="w-full px-6 py-4 sm:py-5 bg-black/60 hover:bg-purple-600/80 backdrop-blur-md text-white rounded-xl font-medium transition text-base sm:text-lg border border-white/10"
+                      >
+                        {opt}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center text-white/60 py-4">No options available</div>
+                  )
                 ) : (
-                  <div className="text-center text-white/60 py-4">No options available</div>
+                  <div className="text-center text-white/70 py-4 text-sm sm:text-base">
+                    Options will appear in {currentStep.buttonShowTime} seconds...
+                  </div>
                 )}
               </div>
             )}
@@ -508,18 +549,24 @@ export default function CampaignViewer() {
             {/* Button/CTA */}
             {currentStep.answerType === 'button' && (
               <div className="space-y-3 sm:space-y-4">
-                {currentStep.buttonOptions && currentStep.buttonOptions.length > 0 ? (
-                  currentStep.buttonOptions.map((btn, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSubmitResponse(null, btn.text)}
-                      className="w-full px-6 py-4 sm:py-5 bg-purple-600/70 hover:bg-purple-600/90 backdrop-blur-md text-white rounded-xl font-semibold transition text-base sm:text-lg border border-white/20 shadow-lg"
-                    >
-                      {btn.text}
-                    </button>
-                  ))
+                {showButtons ? (
+                  currentStep.buttonOptions && currentStep.buttonOptions.length > 0 ? (
+                    currentStep.buttonOptions.map((btn, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSubmitResponse(null, btn.text)}
+                        className="w-full px-6 py-4 sm:py-5 bg-purple-600/70 hover:bg-purple-600/90 backdrop-blur-md text-white rounded-xl font-semibold transition text-base sm:text-lg border border-white/20 shadow-lg"
+                      >
+                        {btn.text}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center text-white/60 py-4">No buttons available</div>
+                  )
                 ) : (
-                  <div className="text-center text-white/60 py-4">No buttons available</div>
+                  <div className="text-center text-white/70 py-4 text-sm sm:text-base">
+                    Buttons will appear in {currentStep.buttonShowTime} seconds...
+                  </div>
                 )}
               </div>
             )}
