@@ -28,9 +28,10 @@ async function getCampaigns(req, res) {
     // Get response counts for all campaigns
     const campaignsWithCounts = await Promise.all(
       data.map(async (campaign) => {
-        const { count, error: countError } = await supabase
+        // Get all completed responses for this campaign
+        const { data: responses, error: countError } = await supabase
           .from('responses')
-          .select('session_id', { count: 'exact', head: false })
+          .select('id, data')
           .eq('campaign_id', campaign.id)
           .eq('completed', true)
 
@@ -39,14 +40,12 @@ async function getCampaigns(req, res) {
           return { ...campaign, response_count: 0 }
         }
 
-        // Count unique sessions
-        const { data: sessions } = await supabase
-          .from('responses')
-          .select('session_id')
-          .eq('campaign_id', campaign.id)
-          .eq('completed', true)
-
-        const uniqueSessions = new Set(sessions?.map(s => s.session_id) || [])
+        // Count unique sessions from data.sessionId
+        const uniqueSessions = new Set(
+          responses
+            ?.map(r => r.data?.sessionId)
+            .filter(sid => sid) || []
+        )
 
         return { ...campaign, response_count: uniqueSessions.size }
       })
