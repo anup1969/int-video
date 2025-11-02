@@ -169,10 +169,6 @@ export default function CampaignViewer() {
     );
   }
 
-  const steps = campaign.nodes
-    .filter(n => n.type === 'video')
-    .sort((a, b) => a.stepNumber - b.stepNumber);
-
   const currentStep = steps[currentStepIndex];
   const currentNode = campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber);
 
