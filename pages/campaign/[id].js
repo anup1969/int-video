@@ -24,6 +24,7 @@ export default function CampaignViewer() {
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showPlayButton, setShowPlayButton] = useState(false);
+  const [volume, setVolume] = useState(0.6); // 60% default volume
 
   // Response tracking
   const sessionId = useRef(null);
@@ -266,9 +267,18 @@ export default function CampaignViewer() {
   const handleUnmute = () => {
     if (videoRef.current) {
       videoRef.current.muted = false;
+      videoRef.current.volume = volume; // Set to 60% default
       videoRef.current.currentTime = 0;
       videoRef.current.play();
       setIsMuted(false);
+    }
+  };
+
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (videoRef.current) {
+      videoRef.current.volume = newVolume;
     }
   };
 
@@ -340,11 +350,11 @@ export default function CampaignViewer() {
         </div>
       )}
 
-      {/* Unmute Button - Top Left */}
+      {/* Unmute Button - Top Right */}
       {isMuted && currentStep.videoUrl && (
         <button
           onClick={handleUnmute}
-          className="absolute top-4 left-4 sm:top-6 sm:left-6 bg-black/70 hover:bg-black/90 text-white px-3 py-2 sm:px-4 sm:py-3 rounded-lg flex items-center gap-2 transition backdrop-blur-sm z-20 text-sm sm:text-base"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-black/70 hover:bg-black/90 text-white px-3 py-2 sm:px-4 sm:py-3 rounded-lg flex items-center gap-2 transition backdrop-blur-sm z-20 text-sm sm:text-base"
         >
           <svg
             className="w-4 h-4 sm:w-5 sm:h-5"
@@ -368,6 +378,31 @@ export default function CampaignViewer() {
           </svg>
           <span className="font-medium">Click to Unmute</span>
         </button>
+      )}
+
+      {/* Volume Control - Top Right */}
+      {!isMuted && currentStep.videoUrl && (
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-black/70 backdrop-blur-sm rounded-lg p-2 sm:p-3 flex items-center gap-2 sm:gap-3 z-20">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+          </svg>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="w-16 sm:w-24 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer slider"
+            style={{
+              background: `linear-gradient(to right, #fff 0%, #fff ${volume * 100}%, rgba(255,255,255,0.3) ${volume * 100}%, rgba(255,255,255,0.3) 100%)`
+            }}
+          />
+          <span className="text-white text-xs sm:text-sm font-medium min-w-[2rem] sm:min-w-[2.5rem]">
+            {Math.round(volume * 100)}%
+          </span>
+        </div>
       )}
 
       {/* Centered Play/Pause Button */}
@@ -612,10 +647,6 @@ export default function CampaignViewer() {
             )}
           </div>
 
-          {/* Version Badge */}
-          <div className="mt-4 sm:mt-6 text-center">
-            <span className="text-xs text-white/40">v{packageInfo.version}</span>
-          </div>
         </div>
       </div>
     </div>
