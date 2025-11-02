@@ -405,13 +405,6 @@ export default function CampaignViewer() {
         {/* Content Container */}
         <div className="relative px-4 sm:px-6 md:px-8 lg:px-12 pb-6 sm:pb-8 md:pb-10">
 
-          {/* Step Label / Question */}
-          <div className="text-white text-center mb-4 sm:mb-6">
-            <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">
-              {currentStep.label}
-            </h3>
-          </div>
-
           {/* Contact Form (if enabled and showing) */}
           {currentStep.showContactForm && (
             <div className="mb-4 sm:mb-6 mx-auto max-w-md lg:max-w-lg">
