@@ -523,6 +523,7 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                 URL copied!
               </div>
             )}
+            </div>
           </div>
         </div>
 
