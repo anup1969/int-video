@@ -162,7 +162,7 @@ export default function CampaignViewer() {
         clearTimeout(buttonDelayTimeout.current);
       }
     };
-  }, [currentStepIndex, currentStep]);
+  }, [currentStepIndex]); // Only depend on step index, not the whole step object
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
