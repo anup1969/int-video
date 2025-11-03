@@ -20,6 +20,7 @@ export default function CampaignViewer() {
   const [textResponse, setTextResponse] = useState('');
   const [formData, setFormData] = useState({});
   const [selectedOption, setSelectedOption] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
   const [campaignEnded, setCampaignEnded] = useState(false);
   const [endConfig, setEndConfig] = useState(null);
   const [isMuted, setIsMuted] = useState(true);
@@ -218,6 +219,7 @@ export default function CampaignViewer() {
       setTextResponse('');
       setFormData({});
       setSelectedOption(null);
+      setUploadedFile(null);
     }
   };
 
@@ -268,6 +270,8 @@ export default function CampaignViewer() {
       answerData = { type: 'selection', value: optionValue };
     } else if (currentStep.answerType === 'contact-form') {
       answerData = { type: 'contact-form', value: formData };
+    } else if (currentStep.answerType === 'file-upload' && uploadedFile) {
+      answerData = { type: 'file', value: uploadedFile.name, fileSize: uploadedFile.size, fileType: uploadedFile.type };
     }
 
     // Save response before navigation
@@ -325,6 +329,7 @@ export default function CampaignViewer() {
             setTextResponse('');
             setFormData({});
             setSelectedOption(null);
+            setUploadedFile(null);
             return;
           }
         }
@@ -670,6 +675,47 @@ export default function CampaignViewer() {
                   <span>Not likely</span>
                   <span>Very likely</span>
                 </div>
+              </div>
+            )}
+
+            {/* File Upload */}
+            {currentStep.answerType === 'file-upload' && (
+              <div className="space-y-4 bg-black/60 backdrop-blur-md p-4 sm:p-6 rounded-xl">
+                <div className="text-center">
+                  <label className="flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-white/30 rounded-xl p-8 hover:border-purple-500 hover:bg-white/5 transition">
+                    <div className="text-5xl mb-3">📎</div>
+                    <div className="text-white font-medium mb-1">
+                      {uploadedFile ? uploadedFile.name : 'Click to upload file'}
+                    </div>
+                    <div className="text-white/60 text-sm">
+                      {uploadedFile
+                        ? `${(uploadedFile.size / 1024 / 1024).toFixed(2)} MB`
+                        : 'PDF, DOC, Image, or any file type'
+                      }
+                    </div>
+                    <input
+                      type="file"
+                      onChange={(e) => setUploadedFile(e.target.files[0])}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                {uploadedFile && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setUploadedFile(null)}
+                      className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition border border-white/20"
+                    >
+                      Remove
+                    </button>
+                    <button
+                      onClick={() => handleSubmitResponse()}
+                      className="flex-1 px-4 py-3 bg-purple-600/70 hover:bg-purple-600/90 text-white rounded-lg font-medium transition border border-white/20"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
