@@ -84,6 +84,19 @@ export default function ResponseViewer() {
       return 'Video response recorded';
     } else if (answerData.type === 'audio') {
       return 'Audio response recorded';
+    } else if (answerData.type === 'file' && answerData.fileUrl) {
+      return (
+        <a
+          href={answerData.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+        >
+          <i className="fas fa-download"></i>
+          {answerData.value}
+          {answerData.fileSize && ` (${(answerData.fileSize / 1024 / 1024).toFixed(2)} MB)`}
+        </a>
+      );
     }
 
     return JSON.stringify(answerData.value);

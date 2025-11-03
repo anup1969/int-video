@@ -21,6 +21,7 @@ export default function CampaignViewer() {
   const [formData, setFormData] = useState({});
   const [selectedOption, setSelectedOption] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [campaignEnded, setCampaignEnded] = useState(false);
   const [endConfig, setEndConfig] = useState(null);
   const [isMuted, setIsMuted] = useState(true);
@@ -271,7 +272,37 @@ export default function CampaignViewer() {
     } else if (currentStep.answerType === 'contact-form') {
       answerData = { type: 'contact-form', value: formData };
     } else if (currentStep.answerType === 'file-upload' && uploadedFile) {
-      answerData = { type: 'file', value: uploadedFile.name, fileSize: uploadedFile.size, fileType: uploadedFile.type };
+      // Upload file first
+      setUploadingFile(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', uploadedFile);
+
+        const uploadResponse = await fetch('/api/upload/file', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('File upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
+        answerData = {
+          type: 'file',
+          value: uploadData.fileName,
+          fileSize: uploadData.fileSize,
+          fileType: uploadData.fileType,
+          fileUrl: uploadData.fileUrl
+        };
+      } catch (error) {
+        console.error('File upload error:', error);
+        alert('Failed to upload file. Please try again.');
+        setUploadingFile(false);
+        return;
+      } finally {
+        setUploadingFile(false);
+      }
     }
 
     // Save response before navigation
@@ -704,15 +735,24 @@ export default function CampaignViewer() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => setUploadedFile(null)}
-                      className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition border border-white/20"
+                      disabled={uploadingFile}
+                      className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Remove
                     </button>
                     <button
                       onClick={() => handleSubmitResponse()}
-                      className="flex-1 px-4 py-3 bg-purple-600/70 hover:bg-purple-600/90 text-white rounded-lg font-medium transition border border-white/20"
+                      disabled={uploadingFile}
+                      className="flex-1 px-4 py-3 bg-purple-600/70 hover:bg-purple-600/90 text-white rounded-lg font-medium transition border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Submit
+                      {uploadingFile ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          Uploading...
+                        </>
+                      ) : (
+                        'Submit'
+                      )}
                     </button>
                   </div>
                 )}
