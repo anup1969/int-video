@@ -363,11 +363,21 @@ export default function CampaignViewer() {
           window.location.href = url;
           return;
         } else if (matchingRule.targetType === 'node' && matchingRule.target) {
-          // Try to find by ID first, then by originalId (for nodes that were recreated)
+          // Try to find by ID first, then by originalId, then by data.originalId (for nodes that were recreated multiple times)
+          console.log('[ROUTING DEBUG] Looking for target:', matchingRule.target);
+          console.log('[ROUTING DEBUG] Available steps:', steps.map(s => ({ id: s.id, originalId: s.originalId, label: s.label })));
+
           let targetStepIndex = steps.findIndex(s => s.id === matchingRule.target);
           if (targetStepIndex === -1) {
             targetStepIndex = steps.findIndex(s => s.originalId === matchingRule.target);
           }
+          // Also check nested data.originalId as a third fallback
+          if (targetStepIndex === -1) {
+            targetStepIndex = steps.findIndex(s => s.data?.originalId === matchingRule.target);
+          }
+
+          console.log('[ROUTING DEBUG] Target step index found:', targetStepIndex);
+
           if (targetStepIndex !== -1) {
             setCurrentStepIndex(targetStepIndex);
             setShowResponseUI(null);
@@ -376,6 +386,8 @@ export default function CampaignViewer() {
             setSelectedOption(null);
             setUploadedFile(null);
             return;
+          } else {
+            console.error('[ROUTING ERROR] Could not find target step for ID:', matchingRule.target);
           }
         }
       }
