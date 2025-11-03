@@ -320,7 +320,7 @@ export default function CampaignViewer() {
           if (rule.label && rule.label.includes(optionValue)) {
             return true;
           }
-          // Also check button index conditions (button_0, button_1, etc)
+          // Check button index conditions (button_0, button_1, etc)
           if (rule.condition && rule.condition.startsWith('button_')) {
             const buttonIndex = parseInt(rule.condition.replace('button_', ''));
             const buttons = currentStep.buttonOptions || currentStep.mcOptions || [];
@@ -328,6 +328,15 @@ export default function CampaignViewer() {
             if (selectedButton) {
               const buttonText = selectedButton.text || selectedButton;
               return buttonText === optionValue;
+            }
+          }
+          // Also check option index conditions (option_0, option_1, etc) for multiple-choice
+          if (rule.condition && rule.condition.startsWith('option_')) {
+            const optionIndex = parseInt(rule.condition.replace('option_', ''));
+            const options = currentStep.mcOptions || [];
+            const selectedOption = options[optionIndex];
+            if (selectedOption === optionValue) {
+              return true;
             }
           }
         }
