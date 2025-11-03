@@ -55,6 +55,7 @@ export default function CampaignViewer() {
           ...data.campaign,
           nodes: data.steps.map(step => ({
             id: step.id,
+            originalId: step.data?.originalId || step.id,
             type: 'video',
             stepNumber: step.step_number,
             label: step.label,
@@ -362,7 +363,11 @@ export default function CampaignViewer() {
           window.location.href = url;
           return;
         } else if (matchingRule.targetType === 'node' && matchingRule.target) {
-          const targetStepIndex = steps.findIndex(s => s.id === matchingRule.target);
+          // Try to find by ID first, then by originalId (for nodes that were recreated)
+          let targetStepIndex = steps.findIndex(s => s.id === matchingRule.target);
+          if (targetStepIndex === -1) {
+            targetStepIndex = steps.findIndex(s => s.originalId === matchingRule.target);
+          }
           if (targetStepIndex !== -1) {
             setCurrentStepIndex(targetStepIndex);
             setShowResponseUI(null);
