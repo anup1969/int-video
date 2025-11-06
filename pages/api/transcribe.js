@@ -39,13 +39,17 @@ export default async function handler(req, res) {
     const buffer = Buffer.from(arrayBuffer);
     console.log('File size:', buffer.length, 'bytes');
 
-    // Use Hugging Face's free Whisper API
-    // This is completely free and open source
+    // Use Hugging Face's free Whisper API (requires free API token)
+    if (!process.env.HUGGINGFACE_API_KEY) {
+      throw new Error('HUGGINGFACE_API_KEY environment variable is not set');
+    }
+
     const hfResponse = await fetch(
-      'https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3',
+      'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
       {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
