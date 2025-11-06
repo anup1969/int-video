@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     // Use Hugging Face's free Whisper API
     // This is completely free and open source
     const hfResponse = await fetch(
-      'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
+      'https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3',
       {
         method: 'POST',
         headers: {
