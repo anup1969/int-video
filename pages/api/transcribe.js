@@ -44,17 +44,16 @@ export default async function handler(req, res) {
       throw new Error('HUGGINGFACE_API_KEY environment variable is not set');
     }
 
+    // Hugging Face expects binary audio data, not JSON
     const hfResponse = await fetch(
       'https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'audio/mpeg', // or audio/wav, audio/mp4, etc.
         },
-        body: JSON.stringify({
-          inputs: buffer.toString('base64'),
-        }),
+        body: buffer, // Send raw binary data
       }
     );
 
