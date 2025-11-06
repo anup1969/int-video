@@ -21,17 +21,34 @@ export default function TesterDashboard() {
 
       setVersions(versionsData || []);
 
-      // Initialize test results state
+      // Load existing test reports
+      const { data: reportsData } = await supabase
+        .from('test_reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Initialize test results state with existing reports (latest report per test case)
       const initialResults = {};
+      const reportsByTestCase = {};
+
+      // Group reports by test_case_id (most recent first)
+      reportsData?.forEach(report => {
+        if (!reportsByTestCase[report.test_case_id]) {
+          reportsByTestCase[report.test_case_id] = report;
+        }
+      });
+
       versionsData?.forEach(version => {
         version.test_cases?.forEach(testCase => {
+          const existingReport = reportsByTestCase[testCase.id];
           initialResults[testCase.id] = {
-            notes: '',
-            status: '',
-            document: null
+            notes: existingReport?.notes || '',
+            status: existingReport?.status || '',
+            document: null // File objects can't be restored from DB
           };
         });
       });
+
       setTestResults(initialResults);
     } catch (error) {
       console.error('Failed to load versions:', error);
@@ -98,19 +115,7 @@ export default function TesterDashboard() {
 
       if (error) throw error;
 
-      alert('Test results saved successfully!');
-
-      // Reset results for this version
-      version.test_cases?.forEach(testCase => {
-        setTestResults(prev => ({
-          ...prev,
-          [testCase.id]: {
-            notes: '',
-            status: '',
-            document: null
-          }
-        }));
-      });
+      alert('Test results saved successfully! You can refresh the page to see the saved data.');
     } catch (error) {
       console.error('Failed to save test results:', error);
       alert('Failed to save test results');
