@@ -7,6 +7,7 @@ import {
   updateLogicRulesForAnswerType,
   defaultContactFormFields,
 } from '../../lib/utils/constants';
+import { generatePassword } from '../../lib/utils/password';
 import VideoNode from './VideoNode';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -14,12 +15,47 @@ import EditModal from './EditModal';
 import PreviewModal from './PreviewModal';
 import ZoomControls from './ZoomControls';
 
+// Helper functions for IST timezone conversion
+const convertUTCtoIST = (utcDateString) => {
+  if (!utcDateString) return '';
+  // Parse the UTC date from database
+  const date = new Date(utcDateString);
+  // Convert to IST and format for datetime-local input (which expects local time)
+  // We need to get the IST time as a string in YYYY-MM-DDTHH:mm format
+  const istDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const year = istDate.getFullYear();
+  const month = String(istDate.getMonth() + 1).padStart(2, '0');
+  const day = String(istDate.getDate()).padStart(2, '0');
+  const hours = String(istDate.getHours()).padStart(2, '0');
+  const minutes = String(istDate.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const convertISTtoUTC = (istDatetimeLocal) => {
+  if (!istDatetimeLocal) return null;
+  // The datetime-local value is in format YYYY-MM-DDTHH:mm
+  // We need to treat this as IST and convert to UTC
+  const [datePart, timePart] = istDatetimeLocal.split('T');
+  const [year, month, day] = datePart.split('-');
+  const [hours, minutes] = timePart.split(':');
+
+  // Create a date string that explicitly includes IST offset (+05:30)
+  const istString = `${year}-${month}-${day}T${hours}:${minutes}:00+05:30`;
+  const date = new Date(istString);
+
+  // Return ISO string (UTC)
+  return date.toISOString();
+};
+
 export default function FlowBuilder() {
   const router = useRouter();
   // Campaign & Save State
   const [campaignId, setCampaignId] = useState(null);
   const [campaignName, setCampaignName] = useState('Untitled Campaign');
   const [usageLimit, setUsageLimit] = useState(null);
+  const [scheduleStart, setScheduleStart] = useState(null);
+  const [scheduleEnd, setScheduleEnd] = useState(null);
+  const [password, setPassword] = useState(null); // Campaign password protection
   const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved, error
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -96,6 +132,15 @@ export default function FlowBuilder() {
           setCampaignName(campaign.name);
           if (campaign.usage_limit) {
             setUsageLimit(campaign.usage_limit);
+          }
+          if (campaign.schedule_start) {
+            setScheduleStart(convertUTCtoIST(campaign.schedule_start));
+          }
+          if (campaign.schedule_end) {
+            setScheduleEnd(convertUTCtoIST(campaign.schedule_end));
+          }
+          if (campaign.password) {
+            setPassword(campaign.password);
           }
 
           // Convert steps to nodes format
@@ -212,7 +257,13 @@ export default function FlowBuilder() {
       body: JSON.stringify({
         nodes: videoNodes, // Don't save start node
         connections,
-        settings: { name: campaignName, usageLimit }
+        settings: {
+          name: campaignName,
+          usageLimit,
+          scheduleStart: convertISTtoUTC(scheduleStart),
+          scheduleEnd: convertISTtoUTC(scheduleEnd),
+          password
+        }
       })
     });
 
@@ -239,6 +290,12 @@ export default function FlowBuilder() {
       setCampaignName(campaign.name);
       if (campaign.usage_limit) {
         setUsageLimit(campaign.usage_limit);
+      }
+      if (campaign.schedule_start) {
+        setScheduleStart(campaign.schedule_start);
+      }
+      if (campaign.schedule_end) {
+        setScheduleEnd(campaign.schedule_end);
       }
 
       // Convert steps to nodes
@@ -809,6 +866,7 @@ export default function FlowBuilder() {
   };
 
   return (
+    <>
     <div className="flex h-screen bg-gray-50">
       <Sidebar
         onAddStep={handleAddStep}
@@ -953,6 +1011,8 @@ export default function FlowBuilder() {
         onReset={handlePreviewReset}
       />
 
+    </div>
+
       {/* Settings Modal */}
       {showSettingsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1001,6 +1061,117 @@ export default function FlowBuilder() {
                   </p>
                 )}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Date & Time (Optional)
+                  <span className="text-gray-500 font-normal ml-2">
+                    IST - Campaign becomes active
+                  </span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduleStart || ''}
+                  onChange={(e) => setScheduleStart(e.target.value || null)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                />
+                {scheduleStart && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Campaign will start at {scheduleStart.replace('T', ' at ')} IST
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  End Date & Time (Optional)
+                  <span className="text-gray-500 font-normal ml-2">
+                    IST - Campaign becomes inactive
+                  </span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduleEnd || ''}
+                  onChange={(e) => setScheduleEnd(e.target.value || null)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                />
+                {scheduleEnd && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Campaign will end at {scheduleEnd.replace('T', ' at ')} IST
+                  </p>
+                )}
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                  <i className="fas fa-lock text-violet-600"></i>
+                  Password Protection
+                  <span className="text-gray-500 font-normal">
+                    (Optional)
+                  </span>
+                </label>
+                <div className="flex items-center gap-3 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (password) {
+                        setPassword(null);
+                      } else {
+                        setPassword(generatePassword());
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      password
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                        : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                    }`}
+                  >
+                    <i className={`fas ${password ? 'fa-lock-open' : 'fa-lock'} mr-2`}></i>
+                    {password ? 'Remove Password' : 'Enable Password'}
+                  </button>
+                  {password && (
+                    <button
+                      type="button"
+                      onClick={() => setPassword(generatePassword())}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition"
+                    >
+                      <i className="fas fa-sync-alt mr-2"></i>
+                      Generate New
+                    </button>
+                  )}
+                </div>
+                {password && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Campaign Password:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(password);
+                          alert('Password copied to clipboard!');
+                        }}
+                        className="text-sm text-violet-600 hover:text-violet-800 font-medium"
+                      >
+                        <i className="fas fa-copy mr-1"></i>
+                        Copy
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent font-mono text-lg"
+                      placeholder="Enter custom password"
+                    />
+                    <p className="text-xs text-gray-600 mt-2">
+                      <i className="fas fa-info-circle mr-1"></i>
+                      Visitors will need this password to access the campaign
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
@@ -1023,6 +1194,6 @@ export default function FlowBuilder() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

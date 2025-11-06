@@ -12,13 +12,27 @@ export default async function handler(req, res) {
 
   try {
     // 1. Update campaign settings
+    const updateData = {
+      name: settings?.name || 'Untitled Campaign',
+      usage_limit: settings?.usageLimit || null,
+      settings: settings || {},
+    };
+
+    // Add schedule fields if they exist
+    if (settings?.scheduleStart !== undefined) {
+      updateData.schedule_start = settings.scheduleStart;
+    }
+    if (settings?.scheduleEnd !== undefined) {
+      updateData.schedule_end = settings.scheduleEnd;
+    }
+    // Add password field if it exists
+    if (settings?.password !== undefined) {
+      updateData.password = settings.password;
+    }
+
     const { error: campaignError } = await supabase
       .from('campaigns')
-      .update({
-        name: settings?.name || 'Untitled Campaign',
-        usage_limit: settings?.usageLimit || null,
-        settings: settings || {},
-      })
+      .update(updateData)
       .eq('id', id)
 
     if (campaignError) throw campaignError

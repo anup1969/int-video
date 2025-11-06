@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { generatePassword } from '../lib/utils/password';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [campaignToEdit, setCampaignToEdit] = useState(null);
+  const [editPassword, setEditPassword] = useState(null);
 
   useEffect(() => {
     loadCampaigns();
@@ -106,6 +110,43 @@ export default function Dashboard() {
 
   const handleViewResponses = (campaignId) => {
     router.push(`/responses/${campaignId}`);
+  };
+
+  const handleOpenSettings = (campaign) => {
+    setCampaignToEdit(campaign);
+    setEditPassword(campaign.password || null);
+    setShowSettingsModal(true);
+  };
+
+  const handleSaveSettings = async () => {
+    if (!campaignToEdit) return;
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaignToEdit.id}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nodes: [],
+          connections: [],
+          settings: {
+            password: editPassword
+          }
+        })
+      });
+
+      if (response.ok) {
+        // Update local campaigns list
+        setCampaigns(campaigns.map(c =>
+          c.id === campaignToEdit.id ? { ...c, password: editPassword } : c
+        ));
+        setShowSettingsModal(false);
+        setCampaignToEdit(null);
+        setEditPassword(null);
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('Failed to save settings');
+    }
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -306,6 +347,7 @@ export default function Dashboard() {
                 campaign={campaign}
                 viewMode={viewMode}
                 onEdit={() => router.push(`/?id=${campaign.id}`)}
+                onSettings={() => handleOpenSettings(campaign)}
                 onDuplicate={() => handleDuplicateCampaign(campaign)}
                 onDelete={() => handleDeleteClick(campaign)}
                 onViewResponses={() => handleViewResponses(campaign.id)}
@@ -347,11 +389,127 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Campaign Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowSettingsModal(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <i className="fas fa-cog text-violet-600"></i>
+                  Campaign Settings
+                </h3>
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="p-1 hover:bg-gray-100 rounded transition"
+                >
+                  <i className="fas fa-times text-gray-500"></i>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Settings for "{campaignToEdit?.name}"
+              </p>
+
+              {/* Password Protection Section */}
+              <div className="border-t border-gray-200 pt-4">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                  <i className="fas fa-lock text-violet-600"></i>
+                  Password Protection
+                  <span className="text-gray-500 font-normal">(Optional)</span>
+                </label>
+                <div className="flex items-center gap-3 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editPassword) {
+                        setEditPassword(null);
+                      } else {
+                        setEditPassword(generatePassword());
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      editPassword
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                        : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                    }`}
+                  >
+                    <i className={`fas ${editPassword ? 'fa-lock-open' : 'fa-lock'} mr-2`}></i>
+                    {editPassword ? 'Remove Password' : 'Enable Password'}
+                  </button>
+                  {editPassword && (
+                    <button
+                      type="button"
+                      onClick={() => setEditPassword(generatePassword())}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition"
+                    >
+                      <i className="fas fa-sync-alt mr-2"></i>
+                      Generate New
+                    </button>
+                  )}
+                </div>
+                {editPassword && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Campaign Password:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(editPassword);
+                          alert('Password copied to clipboard!');
+                        }}
+                        className="text-sm text-violet-600 hover:text-violet-800 font-medium"
+                      >
+                        <i className="fas fa-copy mr-1"></i>
+                        Copy
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent font-mono text-lg"
+                      placeholder="Enter custom password"
+                    />
+                    <p className="text-xs text-gray-600 mt-2">
+                      <i className="fas fa-info-circle mr-1"></i>
+                      Visitors will need this password to access the campaign
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowSettingsModal(false);
+                    setCampaignToEdit(null);
+                    setEditPassword(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveSettings}
+                  className="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
+                >
+                  <i className="fas fa-save mr-2"></i>
+                  Save Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onViewResponses, getStatusBadge, formatDate }) {
+function CampaignCard({ campaign, viewMode, onEdit, onSettings, onDuplicate, onDelete, onViewResponses, getStatusBadge, formatDate }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showCopyToast, setShowCopyToast] = useState(false);
   const [showShortCopyToast, setShowShortCopyToast] = useState(false);
@@ -452,6 +610,14 @@ function CampaignCard({ campaign, viewMode, onEdit, onDuplicate, onDelete, onVie
                 title="Edit Campaign"
               >
                 <i className="fas fa-edit text-gray-600"></i>
+              </button>
+
+              <button
+                onClick={onSettings}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                title="Campaign Settings"
+              >
+                <i className="fas fa-cog text-gray-600"></i>
               </button>
 
               <button
