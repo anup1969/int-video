@@ -114,43 +114,135 @@ async function seedData() {
     if (tc150Error) throw tc150Error;
     console.log('✅ Test cases for v1.5.0 created\n');
 
-    // 4. Create test cases for v1.6.0
+    // 4. Create test cases for v1.6.0 with detailed UI checks
     console.log('Creating test cases for v1.6.0...');
     const testCases160 = [
       {
         version_id: version160.id,
-        title: 'Access tester dashboard',
-        description: 'Verify tester dashboard is accessible and displays correctly',
-        category: 'dashboard',
+        title: 'Check expandable row functionality',
+        description: 'Test the expand/collapse functionality of version rows',
+        category: 'ui-interaction',
         priority: 'critical',
         steps: [
-          { step: 1, action: 'Navigate to /tester', expected: 'Tester dashboard loads' },
-          { step: 2, action: 'Check stats cards', expected: 'Version count, active version, tests, pass rate displayed' },
-          { step: 3, action: 'Check tabs', expected: 'All 4 tabs visible: Versions, Test Cases, Reports, Submit' },
+          { step: 1, action: 'Navigate to /tester', expected: 'Tester dashboard loads with version rows' },
+          { step: 2, action: 'Check plus (+) icon visibility', expected: 'Plus icon visible on each version row' },
+          { step: 3, action: 'Click plus icon on first version', expected: 'Row expands, icon changes to minus (-)' },
+          { step: 4, action: 'Check expanded content', expected: 'Testing table with 4 columns visible' },
+          { step: 5, action: 'Click minus icon', expected: 'Row collapses, content hidden' },
         ]
       },
       {
         version_id: version160.id,
-        title: 'View version history',
-        description: 'Verify version history displays with changelog',
-        category: 'dashboard',
+        title: 'Check version summary display',
+        description: 'Verify all summary information displays correctly in collapsed row',
+        category: 'ui-display',
         priority: 'high',
         steps: [
-          { step: 1, action: 'Go to tester dashboard', expected: 'Dashboard loads' },
-          { step: 2, action: 'Click "Versions & Changelog" tab', expected: 'Version list appears' },
-          { step: 3, action: 'Check version details', expected: 'Version number, title, status, changelog visible' },
+          { step: 1, action: 'Navigate to /tester', expected: 'Dashboard loads' },
+          { step: 2, action: 'Check version number display', expected: 'Version number visible (e.g., v1.6.0)' },
+          { step: 3, action: 'Check release date format', expected: 'Date and time in IST format visible' },
+          { step: 4, action: 'Check "About" section', expected: 'Short description of version visible' },
+          { step: 5, action: 'Check status badge', expected: 'Status badge with correct color (testing/stable/deprecated)' },
         ]
       },
       {
         version_id: version160.id,
-        title: 'View test cases',
-        description: 'Verify test cases display with steps',
-        category: 'dashboard',
+        title: 'Check tester notes textarea',
+        description: 'Test the tester notes input field functionality',
+        category: 'form-input',
+        priority: 'critical',
+        steps: [
+          { step: 1, action: 'Expand any version row', expected: 'Testing table appears' },
+          { step: 2, action: 'Locate tester notes column', expected: 'Textarea input visible for each test' },
+          { step: 3, action: 'Click inside textarea', expected: 'Cursor appears, field is focusable' },
+          { step: 4, action: 'Type test notes', expected: 'Text appears as typed, no character limit issues' },
+          { step: 5, action: 'Check textarea resizing', expected: 'Textarea accommodates multiple lines' },
+        ]
+      },
+      {
+        version_id: version160.id,
+        title: 'Check status dropdown options',
+        description: 'Verify status dropdown functionality and options',
+        category: 'form-input',
+        priority: 'critical',
+        steps: [
+          { step: 1, action: 'Expand any version row', expected: 'Testing table appears' },
+          { step: 2, action: 'Locate status dropdown', expected: 'Dropdown visible in Status column' },
+          { step: 3, action: 'Click status dropdown', expected: 'Dropdown opens with options' },
+          { step: 4, action: 'Check "Properly Working" option', expected: 'Option is selectable' },
+          { step: 5, action: 'Check "Not Working" option', expected: 'Option is selectable' },
+          { step: 6, action: 'Check "Partially Working" option', expected: 'Option is selectable' },
+          { step: 7, action: 'Select an option', expected: 'Dropdown shows selected value' },
+        ]
+      },
+      {
+        version_id: version160.id,
+        title: 'Check file upload functionality',
+        description: 'Test document upload feature for test cases',
+        category: 'file-upload',
         priority: 'high',
         steps: [
-          { step: 1, action: 'Go to tester dashboard', expected: 'Dashboard loads' },
-          { step: 2, action: 'Click "Test Cases" tab', expected: 'Test cases list appears' },
-          { step: 3, action: 'Check test case details', expected: 'Title, priority, category, steps visible' },
+          { step: 1, action: 'Expand any version row', expected: 'Testing table appears' },
+          { step: 2, action: 'Locate "Upload Docs" column', expected: 'File input button visible' },
+          { step: 3, action: 'Click "Choose file" button', expected: 'File picker dialog opens' },
+          { step: 4, action: 'Select an image/PDF file', expected: 'File name appears below input' },
+          { step: 5, action: 'Check file indicator', expected: 'Green checkmark with filename shown' },
+        ]
+      },
+      {
+        version_id: version160.id,
+        title: 'Check Save button functionality',
+        description: 'Verify Save Test Results button works correctly',
+        category: 'form-submission',
+        priority: 'critical',
+        steps: [
+          { step: 1, action: 'Expand a version row', expected: 'Testing table appears' },
+          { step: 2, action: 'Fill in notes for one test', expected: 'Notes saved in field' },
+          { step: 3, action: 'Select status from dropdown', expected: 'Status selected' },
+          { step: 4, action: 'Scroll to bottom of expanded section', expected: 'Save button visible' },
+          { step: 5, action: 'Click "Save Test Results" button', expected: 'Success alert appears' },
+          { step: 6, action: 'Check form reset', expected: 'Form fields cleared after save' },
+        ]
+      },
+      {
+        version_id: version160.id,
+        title: 'Check changelog display',
+        description: 'Verify changelog shows correctly in expanded view',
+        category: 'ui-display',
+        priority: 'medium',
+        steps: [
+          { step: 1, action: 'Expand a version row', expected: 'Expanded content visible' },
+          { step: 2, action: 'Check "What\'s New" section', expected: 'Changelog box visible with white background' },
+          { step: 3, action: 'Check feature icons', expected: 'Plus icons for features visible' },
+          { step: 4, action: 'Check fix icons', expected: 'Wrench icons for fixes visible' },
+          { step: 5, action: 'Check improvement icons', expected: 'Up arrow icons for improvements visible' },
+        ]
+      },
+      {
+        version_id: version160.id,
+        title: 'Check test instructions display',
+        description: 'Verify test instructions column shows all details',
+        category: 'ui-display',
+        priority: 'high',
+        steps: [
+          { step: 1, action: 'Expand a version row', expected: 'Testing table appears' },
+          { step: 2, action: 'Check test title display', expected: 'Test number and title visible (e.g., "1. Test Name")' },
+          { step: 3, action: 'Check description text', expected: 'Test description visible below title' },
+          { step: 4, action: 'Check step-by-step instructions', expected: 'Numbered steps with actions visible' },
+          { step: 5, action: 'Check text formatting', expected: 'Text is readable, properly sized' },
+        ]
+      },
+      {
+        version_id: version160.id,
+        title: 'Check responsive layout',
+        description: 'Test dashboard layout on different screen sizes',
+        category: 'responsive',
+        priority: 'medium',
+        steps: [
+          { step: 1, action: 'Open dashboard on desktop (1920px)', expected: 'All columns visible, proper spacing' },
+          { step: 2, action: 'Resize to tablet (768px)', expected: 'Layout adjusts, table scrolls horizontally if needed' },
+          { step: 3, action: 'Check mobile view (375px)', expected: 'Rows stack vertically, still functional' },
+          { step: 4, action: 'Check touch interactions', expected: 'Buttons and dropdowns work on touch' },
         ]
       }
     ];
