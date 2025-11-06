@@ -83,14 +83,14 @@ export default function TesterDashboard() {
       const filePath = `test-reports/${fileName}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('campaign-videos')
+        .from('campaign-files')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('campaign-videos')
+        .from('campaign-files')
         .getPublicUrl(filePath);
 
       // Store file URL in state
