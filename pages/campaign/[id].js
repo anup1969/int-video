@@ -468,7 +468,7 @@ export default function CampaignViewer() {
         setUploadingFile(false);
       }
     } else if (currentStep.answerType === 'open-ended' && recordedBlob) {
-      // Upload recorded audio/video using chunked upload
+      // Upload recorded audio/video using direct upload (now compressed to stay under 4MB)
       setUploadingFile(true);
       try {
         const fileExtension = recordedBlob.type.includes('video') ? 'webm' : (recordedBlob.type.includes('audio') ? 'webm' : 'mp4');
@@ -476,16 +476,27 @@ export default function CampaignViewer() {
         const randomString = Math.random().toString(36).substring(7);
         const fileName = `recording-${timestamp}-${randomString}.${fileExtension}`;
 
-        // Use chunked upload to bypass Vercel's 4MB body limit
-        const uploadData = await uploadFileInChunks(
-          recordedBlob,
-          fileName,
-          recordedBlob.type,
-          (progress) => {
-            console.log(`Upload progress: ${progress}%`);
-          }
-        );
+        const formData = new FormData();
+        formData.append('file', recordedBlob, fileName);
 
+        const uploadResponse = await fetch('/api/upload/file', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          const responseText = await uploadResponse.text();
+          console.error('Upload response:', uploadResponse.status, responseText);
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch {
+            errorData = { error: `Server error (${uploadResponse.status}): ${responseText.substring(0, 100)}` };
+          }
+          throw new Error(errorData.error || errorData.details || 'Recording upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
         answerData = {
           type: recordedBlob.type.includes('video') ? 'video' : 'audio',
           value: uploadData.fileName,
@@ -686,7 +697,14 @@ export default function CampaignViewer() {
         ? (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4')
         : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      // Add compression options to reduce file size
+      const options = {
+        mimeType,
+        videoBitsPerSecond: 1000000, // 1 Mbps (good quality, ~7.5MB per minute)
+        audioBitsPerSecond: 128000   // 128 kbps (good audio quality)
+      };
+
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
 
       const chunks = [];
