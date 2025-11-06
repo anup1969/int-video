@@ -41,10 +41,12 @@ export default function TesterDashboard() {
       versionsData?.forEach(version => {
         version.test_cases?.forEach(testCase => {
           const existingReport = reportsByTestCase[testCase.id];
+          const screenshotUrl = existingReport?.screenshots?.[0] || null;
           initialResults[testCase.id] = {
             notes: existingReport?.notes || '',
             status: existingReport?.status || '',
-            document: null // File objects can't be restored from DB
+            document: null, // File objects can't be restored from DB
+            documentUrl: screenshotUrl // But we can show the URL
           };
         });
       });
@@ -71,14 +73,39 @@ export default function TesterDashboard() {
     }));
   };
 
-  const handleFileUpload = (testCaseId, file) => {
-    setTestResults(prev => ({
-      ...prev,
-      [testCaseId]: {
-        ...prev[testCaseId],
-        document: file
-      }
-    }));
+  const handleFileUpload = async (testCaseId, file) => {
+    if (!file) return;
+
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${testCaseId}-${Date.now()}.${fileExt}`;
+      const filePath = `test-reports/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('campaign-videos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('campaign-videos')
+        .getPublicUrl(filePath);
+
+      // Store file URL in state
+      setTestResults(prev => ({
+        ...prev,
+        [testCaseId]: {
+          ...prev[testCaseId],
+          document: file,
+          documentUrl: publicUrl
+        }
+      }));
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      alert('Failed to upload file. Please try again.');
+    }
   };
 
   const handleSaveTestResults = async (versionId) => {
@@ -96,6 +123,7 @@ export default function TesterDashboard() {
           tester_name: 'Tester', // You can add a name input field
           status: result.status || 'skip',
           notes: result.notes,
+          screenshots: result.documentUrl ? [result.documentUrl] : [],
           browser: navigator.userAgent.includes('Chrome') ? 'Chrome' :
                   navigator.userAgent.includes('Firefox') ? 'Firefox' : 'Other',
           device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
@@ -352,6 +380,17 @@ export default function TesterDashboard() {
                                           <i className="fas fa-check-circle"></i>
                                           {testResults[testCase.id].document.name}
                                         </div>
+                                      )}
+                                      {!testResults[testCase.id]?.document && testResults[testCase.id]?.documentUrl && (
+                                        <a
+                                          href={testResults[testCase.id].documentUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                        >
+                                          <i className="fas fa-file"></i>
+                                          View uploaded file
+                                        </a>
                                       )}
                                     </div>
                                   </td>
