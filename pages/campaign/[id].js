@@ -456,7 +456,7 @@ export default function CampaignViewer() {
         setUploadingFile(false);
       }
     } else if (currentStep.answerType === 'open-ended' && recordedBlob) {
-      // Upload recorded audio/video
+      // Upload recorded audio/video using chunked upload
       setUploadingFile(true);
       try {
         const fileExtension = recordedBlob.type.includes('video') ? 'webm' : (recordedBlob.type.includes('audio') ? 'webm' : 'mp4');
@@ -464,27 +464,16 @@ export default function CampaignViewer() {
         const randomString = Math.random().toString(36).substring(7);
         const fileName = `recording-${timestamp}-${randomString}.${fileExtension}`;
 
-        const formData = new FormData();
-        formData.append('file', recordedBlob, fileName);
-
-        const uploadResponse = await fetch('/api/upload/file', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!uploadResponse.ok) {
-          const responseText = await uploadResponse.text();
-          console.error('Upload response:', uploadResponse.status, responseText);
-          let errorData;
-          try {
-            errorData = JSON.parse(responseText);
-          } catch {
-            errorData = { error: `Server error (${uploadResponse.status}): ${responseText.substring(0, 100)}` };
+        // Use chunked upload to bypass Vercel's 4MB body limit
+        const uploadData = await uploadFileInChunks(
+          recordedBlob,
+          fileName,
+          recordedBlob.type,
+          (progress) => {
+            console.log(`Upload progress: ${progress}%`);
           }
-          throw new Error(errorData.error || errorData.details || 'Recording upload failed');
-        }
+        );
 
-        const uploadData = await uploadResponse.json();
         answerData = {
           type: recordedBlob.type.includes('video') ? 'video' : 'audio',
           value: uploadData.fileName,
