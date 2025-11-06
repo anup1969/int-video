@@ -10,7 +10,9 @@ const supabase = createClient(
 export const config = {
   api: {
     bodyParser: false,
+    responseLimit: false,
   },
+  maxDuration: 60, // Allow up to 60 seconds for large file uploads
 };
 
 export default async function handler(req, res) {
@@ -19,7 +21,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const form = formidable({});
+    const form = formidable({
+      maxFileSize: 30 * 1024 * 1024, // 30MB max file size (enough for 2-minute videos)
+      maxTotalFileSize: 30 * 1024 * 1024, // 30MB total
+      keepExtensions: true,
+    });
 
     const [fields, files] = await form.parse(req);
 
