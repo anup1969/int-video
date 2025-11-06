@@ -12,6 +12,7 @@ const generateSessionId = () => {
 async function uploadFileInChunks(blob, fileName, fileType, onProgress) {
   const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks (base64 encoding adds ~33% overhead, so 2MB -> ~2.7MB with JSON)
   const totalChunks = Math.ceil(blob.size / CHUNK_SIZE);
+  let lastResult = null;
 
   for (let i = 0; i < totalChunks; i++) {
     const start = i * CHUNK_SIZE;
@@ -40,11 +41,15 @@ async function uploadFileInChunks(blob, fileName, fileType, onProgress) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Chunk upload failed');
+      const errorText = await response.text();
+      console.error('Chunk upload failed:', response.status, errorText);
+      throw new Error(`Chunk upload failed: ${errorText}`);
     }
 
     const result = await response.json();
+    lastResult = result;
+
+    console.log(`Chunk ${i + 1}/${totalChunks} uploaded`, result);
 
     // Update progress
     if (onProgress) {
@@ -56,6 +61,13 @@ async function uploadFileInChunks(blob, fileName, fileType, onProgress) {
       return result;
     }
   }
+
+  // Fallback: return last result if no chunk was marked as completed
+  if (lastResult) {
+    return lastResult;
+  }
+
+  throw new Error('Upload completed but no result was returned');
 }
 
 export default function CampaignViewer() {
