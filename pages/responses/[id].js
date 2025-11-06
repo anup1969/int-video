@@ -13,6 +13,7 @@ export default function ResponseViewer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'list'
   const [selectedFormStep, setSelectedFormStep] = useState(null); // For form modal
+  const [transcribing, setTranscribing] = useState({}); // Track transcription loading per step
 
   useEffect(() => {
     if (!id) return;
@@ -55,8 +56,12 @@ export default function ResponseViewer() {
             step: step.stepNumber,
             type: step.answerType,
             slideType: step.slideType || 'video', // video, text, etc.
-            value: formatAnswerValue(step.answerData),
-            rawData: step.answerData // Keep raw data for form display
+            value: formatAnswerValue(step.answerData, response.id, step.stepId),
+            rawData: {
+              ...step.answerData,
+              stepId: step.stepId,
+              transcription: step.transcription // Include existing transcription if any
+            } // Keep raw data for form display and transcription
           }))
         };
       });
@@ -70,7 +75,7 @@ export default function ResponseViewer() {
     }
   };
 
-  const formatAnswerValue = (answerData) => {
+  const formatAnswerValue = (answerData, responseId, stepId) => {
     if (!answerData) return 'No response';
 
     if (answerData.type === 'text') {
@@ -80,6 +85,28 @@ export default function ResponseViewer() {
     } else if (answerData.type === 'contact-form') {
       const formData = answerData.value;
       return `${formData.name || ''} - ${formData.email || ''} - ${formData.phone || ''}`;
+    } else if (answerData.type === 'video' && answerData.fileUrl) {
+      return (
+        <a
+          href={`/viewer/${id}?responseId=${responseId}&stepId=${stepId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-violet-600 hover:text-violet-800 underline font-medium"
+        >
+          View Video
+        </a>
+      );
+    } else if (answerData.type === 'audio' && answerData.fileUrl) {
+      return (
+        <a
+          href={`/viewer/${id}?responseId=${responseId}&stepId=${stepId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-violet-600 hover:text-violet-800 underline font-medium"
+        >
+          View Audio
+        </a>
+      );
     } else if (answerData.type === 'video') {
       return 'Video response recorded';
     } else if (answerData.type === 'audio') {
@@ -161,6 +188,73 @@ export default function ResponseViewer() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleTranscribe = async (responseId, stepId, fileUrl) => {
+    const key = `${responseId}-${stepId}`;
+    setTranscribing(prev => ({ ...prev, [key]: true }));
+
+    try {
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileUrl, responseId, stepId })
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Transcription failed');
+      }
+
+      const data = await res.json();
+
+      // Update local state with transcription
+      setResponses(prev => prev.map(response => {
+        if (response.id === responseId) {
+          return {
+            ...response,
+            responses: response.responses.map(resp => {
+              if (resp.rawData?.stepId === stepId) {
+                return {
+                  ...resp,
+                  rawData: {
+                    ...resp.rawData,
+                    transcription: data.transcription
+                  }
+                };
+              }
+              return resp;
+            })
+          };
+        }
+        return response;
+      }));
+
+      // Also update selectedResponse if it's open
+      if (selectedResponse && selectedResponse.id === responseId) {
+        setSelectedResponse(prev => ({
+          ...prev,
+          responses: prev.responses.map(resp => {
+            if (resp.rawData?.stepId === stepId) {
+              return {
+                ...resp,
+                rawData: {
+                  ...resp.rawData,
+                  transcription: data.transcription
+                }
+              };
+            }
+            return resp;
+          })
+        }));
+      }
+
+    } catch (error) {
+      console.error('Transcription error:', error);
+      alert('Failed to transcribe: ' + error.message);
+    } finally {
+      setTranscribing(prev => ({ ...prev, [key]: false }));
+    }
   };
 
   if (loading) {
@@ -424,7 +518,7 @@ export default function ResponseViewer() {
                     {/* Dynamic answer cells */}
                     {response.responses.map((resp, cellIdx) => (
                       <td key={cellIdx} className="px-4 py-3 text-sm text-gray-700 border-r border-gray-200">
-                        <div className="max-w-xs truncate" title={resp.value}>
+                        <div className="max-w-xs">
                           {resp.value}
                         </div>
                       </td>
@@ -572,6 +666,12 @@ export default function ResponseViewer() {
                     else if (resp.type === 'button') answerTypeLabel = 'Button';
                     else if (resp.type === 'open-ended') answerTypeLabel = 'Open-ended';
 
+                    const isAudioOrVideo = resp.type === 'video' || resp.type === 'audio';
+                    const hasFileUrl = resp.rawData?.fileUrl;
+                    const transcriptionKey = `${selectedResponse.id}-${resp.rawData?.stepId}`;
+                    const isTranscribing = transcribing[transcriptionKey];
+                    const hasTranscription = resp.rawData?.transcription;
+
                     return (
                       <div key={idx} className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-start gap-3">
@@ -579,14 +679,48 @@ export default function ResponseViewer() {
                             {resp.step}
                           </div>
                           <div className="flex-1">
-                            <div className="mb-2">
+                            <div className="mb-2 flex items-center justify-between">
                               <span className="text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-1 rounded">
                                 {slideIcon} {slideLabel} ({answerTypeLabel})
                               </span>
+                              {/* Transcribe button for audio/video */}
+                              {isAudioOrVideo && hasFileUrl && !hasTranscription && (
+                                <button
+                                  onClick={() => handleTranscribe(
+                                    selectedResponse.id,
+                                    resp.rawData.stepId,
+                                    resp.rawData.fileUrl
+                                  )}
+                                  disabled={isTranscribing}
+                                  className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
+                                >
+                                  {isTranscribing ? (
+                                    <>
+                                      <i className="fas fa-spinner fa-spin"></i>
+                                      Transcribing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <i className="fas fa-file-alt"></i>
+                                      Transcribe
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                             <div className="text-gray-900 font-medium">
                               {resp.value}
                             </div>
+                            {/* Display transcription if available */}
+                            {hasTranscription && (
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <i className="fas fa-file-alt text-blue-600"></i>
+                                  <span className="text-xs font-semibold text-blue-600">Transcription</span>
+                                </div>
+                                <p className="text-sm text-gray-700 italic">"{resp.rawData.transcription}"</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
