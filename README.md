@@ -1,9 +1,10 @@
 # Interactive Video Campaign Platform
 
-**Version:** 2.0.0 (Full Production Release)
-**Date:** November 2, 2025
+**Version:** 1.7.0 (Tester Dashboard with File Management)
+**Date:** November 7, 2025
 **Status:** Production - Fully Functional
 **Live URL:** https://int-video.vercel.app
+**Tester Dashboard:** https://int-video.vercel.app/tester
 
 ---
 
@@ -56,8 +57,11 @@ A complete web-based platform for creating interactive video-based conversation 
 - Volume control and unmute button
 - Button delay with configurable timing
 - Multiple response types (Video, Audio, Text)
+- **Audio/Video Recording**: End-users can record video or audio responses directly in the browser
 - Contact form with customizable fields
 - Conditional logic based on answers
+- Campaign scheduler with start/end date/time (IST timezone)
+- Video progress bar
 
 ---
 
@@ -311,9 +315,55 @@ vercel alias <deployment-url> int-video.vercel.app
 
 ---
 
-## 🔄 Recent Updates (Version 2.0)
+## 🔄 Recent Updates
 
-### November 2, 2025
+### Version 1.7.0 - November 7, 2025 (TESTING)
+- ✅ **Enhanced Tester Dashboard**:
+  - Delete button for uploaded test files
+  - Replace file functionality
+  - Color-coded file upload status (green for new, blue for existing)
+  - Enhanced changelog display with gradient background
+  - Known Issues section display
+  - Better icon visibility with circular backgrounds
+  - Type labels for changelog items (Feature/Fix/Improvement)
+  - Storage DELETE policy for complete file management
+
+### Version 1.6.0 - November 7, 2025 (TESTING)
+- ✅ **Tester Dashboard & QA System**: `/tester`
+  - Version history with expandable rows
+  - Detailed test cases with step-by-step instructions
+  - 4-column testing table (Instructions, Notes, Status, Upload)
+  - Test report submission with file uploads
+  - Pass rate statistics and analytics
+  - Spreadsheet-style test tracking
+  - Data persistence across page reloads
+
+### Version 1.5.0 - November 7, 2025 (STABLE)
+- ✅ **Password Protection Feature**:
+  - Password protection for campaigns
+  - Auto-generated readable passwords (e.g., happy-cloud-42)
+  - Password management in builder settings
+  - Password entry screen for viewers
+  - Session storage for password validation
+
+### Version 1.4.0 - November 4, 2025
+- ✅ **Audio/Video Recording**: End-users can record video or audio responses directly in browser
+  - Live camera preview while recording
+  - Recording timer display
+  - Re-record functionality
+  - Automatic upload to Supabase Storage
+  - Cross-device compatibility (desktop, mobile, tablet)
+- ✅ Campaign scheduler with start/end date/time (IST timezone support)
+- ✅ Video progress bar for tracking playback completion
+- ✅ Improved timezone handling (UTC storage, IST display)
+
+### Version 1.3.x - October-November 2025
+- ✅ Campaign scheduling with start/end dates
+- ✅ Video completion progress bar
+- ✅ IST timezone support for scheduling
+- ✅ Bug fixes for schedule validation
+
+### Version 2.0.0 - November 2, 2025
 - ✅ Added Google Forms-style spreadsheet table view for responses
 - ✅ Fixed slide type display in response details (shows once with answer type)
 - ✅ Added view toggle (Table/List) for responses
