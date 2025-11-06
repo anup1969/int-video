@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { answerTypes } from '../../lib/utils/constants';
 import packageInfo from '../../package.json';
 
@@ -7,6 +7,56 @@ import packageInfo from '../../package.json';
 const generateSessionId = () => {
   return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
+
+// Helper function to upload file in chunks
+async function uploadFileInChunks(blob, fileName, fileType, onProgress) {
+  const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks (base64 encoding adds ~33% overhead, so 2MB -> ~2.7MB with JSON)
+  const totalChunks = Math.ceil(blob.size / CHUNK_SIZE);
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, blob.size);
+    const chunk = blob.slice(start, end);
+
+    // Convert chunk to base64
+    const reader = new FileReader();
+    const chunkBase64 = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(chunk);
+    });
+
+    // Upload chunk
+    const response = await fetch('/api/upload/chunked', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chunk: chunkBase64,
+        fileName,
+        chunkIndex: i,
+        totalChunks,
+        fileType
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Chunk upload failed');
+    }
+
+    const result = await response.json();
+
+    // Update progress
+    if (onProgress) {
+      onProgress(Math.round(((i + 1) / totalChunks) * 100));
+    }
+
+    // If completed, return the result
+    if (result.completed) {
+      return result;
+    }
+  }
+}
 
 export default function CampaignViewer() {
   const router = useRouter();
@@ -24,11 +74,23 @@ export default function CampaignViewer() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [campaignEnded, setCampaignEnded] = useState(false);
   const [endConfig, setEndConfig] = useState(null);
+  const [scheduleMessage, setScheduleMessage] = useState(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showPlayButton, setShowPlayButton] = useState(false);
   const [volume, setVolume] = useState(0.6); // 60% default volume
   const [showButtons, setShowButtons] = useState(false); // For delayed button display
+  const [videoProgress, setVideoProgress] = useState(0); // Video progress percentage (0-100)
+  const [errorMessage, setErrorMessage] = useState(null); // Copyable error modal
+
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedBlob, setRecordedBlob] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+  const recordingStreamRef = useRef(null);
+  const recordingVideoRef = useRef(null);
 
   // Response tracking
   const sessionId = useRef(null);
@@ -74,7 +136,36 @@ export default function CampaignViewer() {
             fontFamily: step.data?.fontFamily || '',
           }))
         };
+
+        // Set campaign data first (so error messages work correctly)
         setCampaign(transformedData);
+
+        // Check campaign schedule
+        const now = new Date();
+        if (data.campaign.schedule_start) {
+          const startDate = new Date(data.campaign.schedule_start);
+          if (now < startDate) {
+            const startTimeIST = startDate.toLocaleString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              dateStyle: 'medium',
+              timeStyle: 'short'
+            });
+            setScheduleMessage(`This campaign will start on ${startTimeIST} IST`);
+            setCampaignEnded(true);
+            setLoading(false);
+            return;
+          }
+        }
+        if (data.campaign.schedule_end) {
+          const endDate = new Date(data.campaign.schedule_end);
+          if (now > endDate) {
+            setScheduleMessage('This campaign has ended');
+            setCampaignEnded(true);
+            setLoading(false);
+            return;
+          }
+        }
+
         setLoading(false);
       })
       .catch(err => {
@@ -145,6 +236,64 @@ export default function CampaignViewer() {
     };
   }, [campaign, loading, campaignEnded, currentStepIndex]);
 
+  // Track video progress
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !campaign || loading || campaignEnded) return;
+
+    const steps = campaign.nodes
+      ?.filter(n => n.type === 'video')
+      .sort((a, b) => a.stepNumber - b.stepNumber);
+
+    const currentStep = steps?.[currentStepIndex];
+    if (!currentStep || !currentStep.videoUrl) return;
+
+    const updateProgress = () => {
+      if (video.duration && !isNaN(video.duration)) {
+        const progress = (video.currentTime / video.duration) * 100;
+        setVideoProgress(progress);
+      }
+    };
+
+    // Reset progress when step changes
+    setVideoProgress(0);
+
+    video.addEventListener('timeupdate', updateProgress);
+    video.addEventListener('loadedmetadata', updateProgress);
+
+    return () => {
+      video.removeEventListener('timeupdate', updateProgress);
+      video.removeEventListener('loadedmetadata', updateProgress);
+    };
+  }, [currentStepIndex, campaign, loading, campaignEnded]);
+
+  // Set recording video stream (prevents flickering)
+  useEffect(() => {
+    if (recordingVideoRef.current && recordingStreamRef.current && isRecording) {
+      recordingVideoRef.current.srcObject = recordingStreamRef.current;
+    } else if (recordingVideoRef.current && !isRecording) {
+      // Clear srcObject when not recording
+      recordingVideoRef.current.srcObject = null;
+    }
+  }, [isRecording]);
+
+  // Create stable video URL to prevent flickering
+  const recordedVideoUrl = useMemo(() => {
+    if (recordedBlob) {
+      return URL.createObjectURL(recordedBlob);
+    }
+    return null;
+  }, [recordedBlob]);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (recordedVideoUrl) {
+        URL.revokeObjectURL(recordedVideoUrl);
+      }
+    };
+  }, [recordedVideoUrl]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -192,9 +341,9 @@ export default function CampaignViewer() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-600">
         <div className="max-w-md w-full mx-4 bg-white rounded-lg shadow-xl p-8 text-center">
-          <div className="text-6xl mb-4">✅</div>
+          <div className="text-6xl mb-4">{scheduleMessage ? '⏰' : '✅'}</div>
           <div className="text-2xl font-bold text-gray-800 mb-4">
-            {endConfig?.endMessage || 'Thank you for your response!'}
+            {scheduleMessage || endConfig?.endMessage || 'Thank you for your response!'}
           </div>
           {endConfig?.ctaText && endConfig?.ctaUrl && (
             <a
@@ -222,6 +371,7 @@ export default function CampaignViewer() {
       setFormData({});
       setSelectedOption(null);
       setUploadedFile(null);
+      discardRecording(); // Clear recording when moving to next step
     }
   };
 
@@ -273,7 +423,7 @@ export default function CampaignViewer() {
     } else if (currentStep.answerType === 'contact-form') {
       answerData = { type: 'contact-form', value: formData };
     } else if (currentStep.answerType === 'file-upload' && uploadedFile) {
-      // Upload file first
+      // Upload file
       setUploadingFile(true);
       try {
         const formData = new FormData();
@@ -285,7 +435,8 @@ export default function CampaignViewer() {
         });
 
         if (!uploadResponse.ok) {
-          throw new Error('File upload failed');
+          const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || errorData.details || 'File upload failed');
         }
 
         const uploadData = await uploadResponse.json();
@@ -298,7 +449,54 @@ export default function CampaignViewer() {
         };
       } catch (error) {
         console.error('File upload error:', error);
-        alert('Failed to upload file. Please try again.');
+        setErrorMessage(`Failed to upload file: ${error.message}\n\nFile: ${uploadedFile.name} (${(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)\n\nPlease try a smaller file or contact support.`);
+        setUploadingFile(false);
+        return;
+      } finally {
+        setUploadingFile(false);
+      }
+    } else if (currentStep.answerType === 'open-ended' && recordedBlob) {
+      // Upload recorded audio/video
+      setUploadingFile(true);
+      try {
+        const fileExtension = recordedBlob.type.includes('video') ? 'webm' : (recordedBlob.type.includes('audio') ? 'webm' : 'mp4');
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(7);
+        const fileName = `recording-${timestamp}-${randomString}.${fileExtension}`;
+
+        const formData = new FormData();
+        formData.append('file', recordedBlob, fileName);
+
+        const uploadResponse = await fetch('/api/upload/file', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          const responseText = await uploadResponse.text();
+          console.error('Upload response:', uploadResponse.status, responseText);
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch {
+            errorData = { error: `Server error (${uploadResponse.status}): ${responseText.substring(0, 100)}` };
+          }
+          throw new Error(errorData.error || errorData.details || 'Recording upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
+        answerData = {
+          type: recordedBlob.type.includes('video') ? 'video' : 'audio',
+          value: uploadData.fileName,
+          fileSize: uploadData.fileSize,
+          fileType: uploadData.fileType,
+          fileUrl: uploadData.fileUrl
+        };
+
+        // Don't clear recording here - will be cleared when moving to next step
+      } catch (error) {
+        console.error('Recording upload error:', error);
+        setErrorMessage(`Failed to upload recording: ${error.message}\n\nPlease try again or contact support.`);
         setUploadingFile(false);
         return;
       } finally {
@@ -381,6 +579,7 @@ export default function CampaignViewer() {
           if (targetStepIndex !== -1) {
             setCurrentStepIndex(targetStepIndex);
             setShowResponseUI(null);
+            discardRecording(); // Clear recording when moving to next step
             setTextResponse('');
             setFormData({});
             setSelectedOption(null);
@@ -472,6 +671,83 @@ export default function CampaignViewer() {
     }, 500);
   };
 
+  // Recording functions
+  const startRecording = async (type) => {
+    try {
+      const constraints = type === 'video'
+        ? { video: { facingMode: 'user' }, audio: true }
+        : { audio: true };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      recordingStreamRef.current = stream;
+
+      const mimeType = type === 'video'
+        ? (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4')
+        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+
+      const chunks = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        setRecordedBlob(blob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      // Start timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Could not access camera/microphone. Please grant permission and try again.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+
+      // Stop all stream tracks immediately
+      if (recordingStreamRef.current) {
+        recordingStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+
+      setIsRecording(false);
+
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
+
+  const discardRecording = () => {
+    setRecordedBlob(null);
+    setRecordingTime(0);
+    setIsRecording(false);
+
+    if (recordingStreamRef.current) {
+      recordingStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div
       className="fixed inset-0 w-full h-full overflow-hidden bg-black"
@@ -492,16 +768,25 @@ export default function CampaignViewer() {
           </p>
         </div>
       ) : currentStep.videoUrl ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted={isMuted}
-          playsInline
-          className="absolute inset-0 w-full h-full object-contain"
-          src={currentStep.videoUrl}
-        >
-          Your browser does not support the video tag.
-        </video>
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            muted={isMuted}
+            playsInline
+            className="absolute inset-0 w-full h-full object-contain"
+            src={currentStep.videoUrl}
+          >
+            Your browser does not support the video tag.
+          </video>
+          {/* Video Progress Bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/20 z-30">
+            <div
+              className="h-full bg-violet-500 transition-all duration-200 ease-linear"
+              style={{ width: `${videoProgress}%` }}
+            />
+          </div>
+        </>
       ) : (
         <div className="absolute inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
           <div className="text-center text-gray-400">
@@ -790,7 +1075,7 @@ export default function CampaignViewer() {
               <>
                 {!showResponseUI ? (
                   <div className="flex gap-3 justify-center">
-                    {currentStep.enabledResponseTypes?.video && (
+                    {(currentStep.enabledResponseTypes?.video ?? true) && (
                       <button
                         onClick={() => handleResponseClick('video')}
                         className="flex-1 py-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
@@ -798,7 +1083,7 @@ export default function CampaignViewer() {
                         📹 Video
                       </button>
                     )}
-                    {currentStep.enabledResponseTypes?.audio && (
+                    {(currentStep.enabledResponseTypes?.audio ?? true) && (
                       <button
                         onClick={() => handleResponseClick('audio')}
                         className="flex-1 py-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
@@ -806,7 +1091,7 @@ export default function CampaignViewer() {
                         🎤 Audio
                       </button>
                     )}
-                    {currentStep.enabledResponseTypes?.text && (
+                    {(currentStep.enabledResponseTypes?.text ?? true) && (
                       <button
                         onClick={() => handleResponseClick('text')}
                         className="flex-1 py-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-xl transition font-medium border border-white/20"
@@ -818,17 +1103,166 @@ export default function CampaignViewer() {
                 ) : (
                   <div className="space-y-3">
                     {showResponseUI === 'video' && (
-                      <div className="bg-black/70 backdrop-blur-md rounded-xl p-8 sm:p-10 text-center text-white border border-white/20">
-                        <i className="fas fa-video text-4xl sm:text-5xl mb-4"></i>
-                        <p className="mb-4 text-base sm:text-lg">Video recording interface</p>
-                        <div className="text-sm text-white/60">Click "Record" to start recording your video response</div>
+                      <div className="bg-black/70 backdrop-blur-md rounded-xl p-6 sm:p-8 text-white border border-white/20">
+                        {!isRecording && !recordedBlob && (
+                          <div className="text-center">
+                            <i className="fas fa-video text-4xl sm:text-5xl mb-4 text-purple-400"></i>
+                            <p className="mb-4 text-base sm:text-lg">Record your video response</p>
+                            <button
+                              onClick={() => startRecording('video')}
+                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition inline-flex items-center gap-2"
+                            >
+                              <i className="fas fa-circle"></i>
+                              Start Recording
+                            </button>
+                            <div className="text-sm text-white/60 mt-3">Click to start recording with your camera</div>
+                          </div>
+                        )}
+
+                        {isRecording && showResponseUI === 'video' && (
+                          <div className="space-y-4">
+                            <video
+                              ref={recordingVideoRef}
+                              autoPlay
+                              muted
+                              playsInline
+                              className="w-full rounded-lg bg-black"
+                            />
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-red-500 mb-4">
+                                <i className="fas fa-circle animate-pulse mr-2"></i>
+                                Recording {formatTime(recordingTime)}
+                              </div>
+                              <div className="flex gap-3 justify-center">
+                                <button
+                                  onClick={stopRecording}
+                                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition"
+                                >
+                                  <i className="fas fa-stop mr-2"></i>
+                                  Stop Recording
+                                </button>
+                                <button
+                                  onClick={discardRecording}
+                                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition"
+                                >
+                                  <i className="fas fa-times mr-2"></i>
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {recordedBlob && showResponseUI === 'video' && recordedVideoUrl && (
+                          <div className="space-y-4">
+                            <video
+                              src={recordedVideoUrl}
+                              controls
+                              className="w-full rounded-lg bg-black"
+                            />
+                            <div className="text-center text-sm text-white/70 mb-3">
+                              Recording length: {formatTime(recordingTime)}
+                            </div>
+                            <div className="flex gap-3">
+                              <button
+                                onClick={discardRecording}
+                                className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition"
+                              >
+                                <i className="fas fa-redo mr-2"></i>
+                                Re-record
+                              </button>
+                              <button
+                                onClick={() => handleSubmitResponse()}
+                                disabled={uploadingFile}
+                                className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition disabled:opacity-50"
+                              >
+                                {uploadingFile ? 'Uploading...' : 'Submit Video'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     {showResponseUI === 'audio' && (
-                      <div className="bg-black/70 backdrop-blur-md rounded-xl p-8 sm:p-10 text-center text-white border border-white/20">
-                        <i className="fas fa-microphone text-4xl sm:text-5xl mb-4"></i>
-                        <p className="mb-4 text-base sm:text-lg">Audio recording interface</p>
-                        <div className="text-sm text-white/60">Click "Record" to start recording your audio response</div>
+                      <div className="bg-black/70 backdrop-blur-md rounded-xl p-6 sm:p-8 text-white border border-white/20">
+                        {!isRecording && !recordedBlob && (
+                          <div className="text-center">
+                            <i className="fas fa-microphone text-4xl sm:text-5xl mb-4 text-purple-400"></i>
+                            <p className="mb-4 text-base sm:text-lg">Record your audio response</p>
+                            <button
+                              onClick={() => startRecording('audio')}
+                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition inline-flex items-center gap-2"
+                            >
+                              <i className="fas fa-circle"></i>
+                              Start Recording
+                            </button>
+                            <div className="text-sm text-white/60 mt-3">Click to start recording with your microphone</div>
+                          </div>
+                        )}
+
+                        {isRecording && showResponseUI === 'audio' && (
+                          <div className="text-center space-y-6">
+                            <div className="flex justify-center">
+                              <div className="relative">
+                                <i className="fas fa-microphone text-6xl text-red-500 animate-pulse"></i>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-20 h-20 border-4 border-red-500 rounded-full animate-ping"></div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-2xl font-bold text-red-500">
+                              <i className="fas fa-circle animate-pulse mr-2"></i>
+                              Recording {formatTime(recordingTime)}
+                            </div>
+                            <div className="flex gap-3 justify-center">
+                              <button
+                                onClick={stopRecording}
+                                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition"
+                              >
+                                <i className="fas fa-stop mr-2"></i>
+                                Stop Recording
+                              </button>
+                              <button
+                                onClick={discardRecording}
+                                className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition"
+                              >
+                                <i className="fas fa-times mr-2"></i>
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {recordedBlob && showResponseUI === 'audio' && (
+                          <div className="space-y-4">
+                            <div className="bg-black/50 rounded-lg p-6 text-center">
+                              <i className="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
+                              <p className="text-lg mb-2">Audio recorded successfully!</p>
+                              <p className="text-sm text-white/70">Recording length: {formatTime(recordingTime)}</p>
+                            </div>
+                            <audio
+                              src={recordedVideoUrl}
+                              controls
+                              className="w-full"
+                            />
+                            <div className="flex gap-3">
+                              <button
+                                onClick={discardRecording}
+                                className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition"
+                              >
+                                <i className="fas fa-redo mr-2"></i>
+                                Re-record
+                              </button>
+                              <button
+                                onClick={() => handleSubmitResponse()}
+                                disabled={uploadingFile}
+                                className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition disabled:opacity-50"
+                              >
+                                {uploadingFile ? 'Uploading...' : 'Submit Audio'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     {showResponseUI === 'text' && (
@@ -864,6 +1298,50 @@ export default function CampaignViewer() {
 
         </div>
       </div>
+
+      {/* Error Modal - Copyable error messages */}
+      {errorMessage && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <i className="fas fa-exclamation-circle text-red-600 text-xl"></i>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 text-lg">Error</h3>
+              </div>
+            </div>
+
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-gray-700 whitespace-pre-wrap select-text font-mono text-sm">
+                {errorMessage}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(errorMessage);
+                  const btn = event.target;
+                  const originalText = btn.textContent;
+                  btn.textContent = 'Copied!';
+                  setTimeout(() => btn.textContent = originalText, 2000);
+                }}
+                className="flex-1 px-4 py-2 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition font-medium"
+              >
+                <i className="fas fa-copy mr-2"></i>
+                Copy Error
+              </button>
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
