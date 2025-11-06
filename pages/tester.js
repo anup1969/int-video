@@ -93,18 +93,65 @@ export default function TesterDashboard() {
         .from('campaign-files')
         .getPublicUrl(filePath);
 
-      // Store file URL in state
+      // Store file URL and path in state
       setTestResults(prev => ({
         ...prev,
         [testCaseId]: {
           ...prev[testCaseId],
           document: file,
-          documentUrl: publicUrl
+          documentUrl: publicUrl,
+          filePath: filePath // Store the path for deletion
         }
       }));
     } catch (error) {
       console.error('Failed to upload file:', error);
       alert('Failed to upload file. Please try again.');
+    }
+  };
+
+  const handleFileDelete = async (testCaseId) => {
+    const result = testResults[testCaseId];
+    if (!result?.filePath && !result?.documentUrl) return;
+
+    if (!confirm('Are you sure you want to delete this file?')) return;
+
+    try {
+      // Extract file path from URL if filePath is not available
+      let pathToDelete = result.filePath;
+      if (!pathToDelete && result.documentUrl) {
+        const urlParts = result.documentUrl.split('/test-reports/');
+        if (urlParts.length > 1) {
+          pathToDelete = 'test-reports/' + urlParts[1];
+        }
+      }
+
+      if (pathToDelete) {
+        // Delete from Supabase Storage
+        const { error: deleteError } = await supabase.storage
+          .from('campaign-files')
+          .remove([pathToDelete]);
+
+        if (deleteError) {
+          console.error('Failed to delete file from storage:', deleteError);
+          // Continue anyway to clear from state
+        }
+      }
+
+      // Clear from state
+      setTestResults(prev => ({
+        ...prev,
+        [testCaseId]: {
+          ...prev[testCaseId],
+          document: null,
+          documentUrl: null,
+          filePath: null
+        }
+      }));
+
+      alert('File deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      alert('Failed to delete file. Please try again.');
     }
   };
 
@@ -263,25 +310,61 @@ export default function TesterDashboard() {
                 {/* Expanded Testing Details */}
                 {expandedVersion === version.id && (
                   <div className="border-t border-gray-200 p-6 bg-gray-50">
-                    <div className="mb-6">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{version.title}</h3>
-                      {version.description && (
-                        <p className="text-sm text-gray-600 mb-4">{version.description}</p>
-                      )}
+                    <div className="mb-6 space-y-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{version.title}</h3>
+                        {version.description && (
+                          <p className="text-sm text-gray-600">{version.description}</p>
+                        )}
+                      </div>
 
                       {/* Changelog */}
                       {version.changelog && version.changelog.length > 0 && (
-                        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
-                          <h4 className="font-semibold text-gray-900 mb-3">What's New:</h4>
-                          <ul className="space-y-2">
+                        <div className="bg-gradient-to-br from-violet-50 to-blue-50 rounded-lg border-2 border-violet-200 p-5 shadow-sm">
+                          <h4 className="font-bold text-violet-900 mb-4 flex items-center gap-2 text-base">
+                            <i className="fas fa-sparkles"></i>
+                            What's New in v{version.version_number}
+                          </h4>
+                          <ul className="space-y-3">
                             {version.changelog.map((change, idx) => (
-                              <li key={idx} className="flex items-start gap-2 text-sm">
-                                <span className="text-violet-600 mt-0.5">
-                                  {change.type === 'feature' && <i className="fas fa-plus-circle"></i>}
-                                  {change.type === 'fix' && <i className="fas fa-wrench"></i>}
-                                  {change.type === 'improvement' && <i className="fas fa-arrow-up"></i>}
+                              <li key={idx} className="flex items-start gap-3">
+                                <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white shadow-sm">
+                                  {change.type === 'feature' && (
+                                    <i className="fas fa-plus text-green-600 text-xs"></i>
+                                  )}
+                                  {change.type === 'fix' && (
+                                    <i className="fas fa-wrench text-blue-600 text-xs"></i>
+                                  )}
+                                  {change.type === 'improvement' && (
+                                    <i className="fas fa-arrow-up text-purple-600 text-xs"></i>
+                                  )}
                                 </span>
-                                <span className="text-gray-700">{change.description}</span>
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium text-gray-800 capitalize mr-2">
+                                    {change.type}:
+                                  </span>
+                                  <span className="text-sm text-gray-700">{change.description}</span>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Known Issues */}
+                      {version.known_issues && version.known_issues.length > 0 && (
+                        <div className="bg-amber-50 rounded-lg border-2 border-amber-200 p-5 shadow-sm">
+                          <h4 className="font-bold text-amber-900 mb-4 flex items-center gap-2 text-base">
+                            <i className="fas fa-exclamation-triangle"></i>
+                            Known Issues
+                          </h4>
+                          <ul className="space-y-2">
+                            {version.known_issues.map((issue, idx) => (
+                              <li key={idx} className="flex items-start gap-3">
+                                <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white shadow-sm">
+                                  <i className="fas fa-bug text-amber-600 text-xs"></i>
+                                </span>
+                                <span className="text-sm text-gray-700 flex-1">{issue}</span>
                               </li>
                             ))}
                           </ul>
@@ -361,36 +444,85 @@ export default function TesterDashboard() {
                                   {/* Upload Docs */}
                                   <td className="px-4 py-4 align-top">
                                     <div className="space-y-2">
-                                      <label className="block">
-                                        <span className="sr-only">Choose file</span>
-                                        <input
-                                          type="file"
-                                          onChange={(e) => handleFileUpload(testCase.id, e.target.files[0])}
-                                          className="block w-full text-sm text-gray-500
-                                            file:mr-4 file:py-2 file:px-4
-                                            file:rounded-lg file:border-0
-                                            file:text-sm file:font-medium
-                                            file:bg-violet-50 file:text-violet-700
-                                            hover:file:bg-violet-100
-                                            file:cursor-pointer cursor-pointer"
-                                        />
-                                      </label>
-                                      {testResults[testCase.id]?.document && (
-                                        <div className="text-xs text-green-600 flex items-center gap-1">
-                                          <i className="fas fa-check-circle"></i>
-                                          {testResults[testCase.id].document.name}
-                                        </div>
+                                      {/* Show file input if no file uploaded */}
+                                      {!testResults[testCase.id]?.document && !testResults[testCase.id]?.documentUrl && (
+                                        <label className="block">
+                                          <span className="sr-only">Choose file</span>
+                                          <input
+                                            type="file"
+                                            onChange={(e) => handleFileUpload(testCase.id, e.target.files[0])}
+                                            className="block w-full text-sm text-gray-500
+                                              file:mr-4 file:py-2 file:px-4
+                                              file:rounded-lg file:border-0
+                                              file:text-sm file:font-medium
+                                              file:bg-violet-50 file:text-violet-700
+                                              hover:file:bg-violet-100
+                                              file:cursor-pointer cursor-pointer"
+                                          />
+                                        </label>
                                       )}
-                                      {!testResults[testCase.id]?.document && testResults[testCase.id]?.documentUrl && (
-                                        <a
-                                          href={testResults[testCase.id].documentUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                        >
-                                          <i className="fas fa-file"></i>
-                                          View uploaded file
-                                        </a>
+
+                                      {/* Show uploaded file info with delete button */}
+                                      {(testResults[testCase.id]?.document || testResults[testCase.id]?.documentUrl) && (
+                                        <div className="space-y-2">
+                                          {/* Newly uploaded file */}
+                                          {testResults[testCase.id]?.document && (
+                                            <div className="flex items-center justify-between gap-2 p-2 bg-green-50 rounded border border-green-200">
+                                              <div className="text-xs text-green-700 flex items-center gap-1 flex-1 min-w-0">
+                                                <i className="fas fa-check-circle flex-shrink-0"></i>
+                                                <span className="truncate">{testResults[testCase.id].document.name}</span>
+                                              </div>
+                                              <button
+                                                onClick={() => handleFileDelete(testCase.id)}
+                                                className="flex-shrink-0 text-red-600 hover:text-red-800 text-xs px-2 py-1 hover:bg-red-50 rounded transition"
+                                                title="Delete file"
+                                              >
+                                                <i className="fas fa-trash"></i>
+                                              </button>
+                                            </div>
+                                          )}
+
+                                          {/* Previously uploaded file (from database) */}
+                                          {!testResults[testCase.id]?.document && testResults[testCase.id]?.documentUrl && (
+                                            <div className="flex items-center justify-between gap-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                              <a
+                                                href={testResults[testCase.id].documentUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-blue-700 hover:text-blue-900 flex items-center gap-1 flex-1 min-w-0"
+                                              >
+                                                <i className="fas fa-file flex-shrink-0"></i>
+                                                <span className="truncate">View uploaded file</span>
+                                              </a>
+                                              <button
+                                                onClick={() => handleFileDelete(testCase.id)}
+                                                className="flex-shrink-0 text-red-600 hover:text-red-800 text-xs px-2 py-1 hover:bg-red-50 rounded transition"
+                                                title="Delete file"
+                                              >
+                                                <i className="fas fa-trash"></i>
+                                              </button>
+                                            </div>
+                                          )}
+
+                                          {/* Replace button */}
+                                          <label className="block">
+                                            <button
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.currentTarget.nextElementSibling.click();
+                                              }}
+                                              className="w-full px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 transition"
+                                            >
+                                              <i className="fas fa-exchange-alt mr-1"></i>
+                                              Replace File
+                                            </button>
+                                            <input
+                                              type="file"
+                                              onChange={(e) => handleFileUpload(testCase.id, e.target.files[0])}
+                                              className="hidden"
+                                            />
+                                          </label>
+                                        </div>
                                       )}
                                     </div>
                                   </td>
