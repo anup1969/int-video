@@ -2,92 +2,136 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function TesterDashboard() {
-  const [activeTab, setActiveTab] = useState('versions');
   const [versions, setVersions] = useState([]);
-  const [testCases, setTestCases] = useState([]);
-  const [testReports, setTestReports] = useState([]);
-  const [selectedVersion, setSelectedVersion] = useState(null);
+  const [expandedVersion, setExpandedVersion] = useState(null);
+  const [testResults, setTestResults] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Stats
-  const [stats, setStats] = useState({
-    totalVersions: 0,
-    activeVersion: null,
-    totalTests: 0,
-    passRate: 0,
-  });
-
   useEffect(() => {
-    loadData();
+    loadVersions();
   }, []);
 
-  const loadData = async () => {
+  const loadVersions = async () => {
     setLoading(true);
     try {
-      // Load versions
       const { data: versionsData } = await supabase
         .from('versions')
-        .select('*')
+        .select('*, test_cases(*)')
         .order('release_date', { ascending: false });
 
       setVersions(versionsData || []);
 
-      // Load test cases
-      const { data: testCasesData } = await supabase
-        .from('test_cases')
-        .select('*, version:versions(version_number)')
-        .order('created_at', { ascending: false });
-
-      setTestCases(testCasesData || []);
-
-      // Load test reports
-      const { data: reportsData } = await supabase
-        .from('test_reports')
-        .select('*, test_case:test_cases(title), version:versions(version_number)')
-        .order('created_at', { ascending: false });
-
-      setTestReports(reportsData || []);
-
-      // Calculate stats
-      const activeVersion = versionsData?.find(v => v.status === 'testing');
-      const totalTests = reportsData?.length || 0;
-      const passedTests = reportsData?.filter(r => r.status === 'pass').length || 0;
-      const passRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
-
-      setStats({
-        totalVersions: versionsData?.length || 0,
-        activeVersion,
-        totalTests,
-        passRate,
+      // Initialize test results state
+      const initialResults = {};
+      versionsData?.forEach(version => {
+        version.test_cases?.forEach(testCase => {
+          initialResults[testCase.id] = {
+            notes: '',
+            status: '',
+            document: null
+          };
+        });
       });
+      setTestResults(initialResults);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('Failed to load versions:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const toggleExpand = (versionId) => {
+    setExpandedVersion(expandedVersion === versionId ? null : versionId);
+  };
+
+  const handleTestChange = (testCaseId, field, value) => {
+    setTestResults(prev => ({
+      ...prev,
+      [testCaseId]: {
+        ...prev[testCaseId],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleFileUpload = (testCaseId, file) => {
+    setTestResults(prev => ({
+      ...prev,
+      [testCaseId]: {
+        ...prev[testCaseId],
+        document: file
+      }
+    }));
+  };
+
+  const handleSaveTestResults = async (versionId) => {
+    const version = versions.find(v => v.id === versionId);
+    if (!version) return;
+
+    const resultsToSave = [];
+
+    version.test_cases?.forEach(testCase => {
+      const result = testResults[testCase.id];
+      if (result && (result.notes || result.status)) {
+        resultsToSave.push({
+          test_case_id: testCase.id,
+          version_id: versionId,
+          tester_name: 'Tester', // You can add a name input field
+          status: result.status || 'skip',
+          notes: result.notes,
+          browser: navigator.userAgent.includes('Chrome') ? 'Chrome' :
+                  navigator.userAgent.includes('Firefox') ? 'Firefox' : 'Other',
+          device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
+        });
+      }
+    });
+
+    if (resultsToSave.length === 0) {
+      alert('Please fill in at least one test result');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('test_reports')
+        .insert(resultsToSave);
+
+      if (error) throw error;
+
+      alert('Test results saved successfully!');
+
+      // Reset results for this version
+      version.test_cases?.forEach(testCase => {
+        setTestResults(prev => ({
+          ...prev,
+          [testCase.id]: {
+            notes: '',
+            status: '',
+            document: null
+          }
+        }));
+      });
+    } catch (error) {
+      console.error('Failed to save test results:', error);
+      alert('Failed to save test results');
+    }
+  };
+
   const getStatusBadge = (status) => {
     const badges = {
-      testing: 'bg-blue-100 text-blue-700',
-      stable: 'bg-green-100 text-green-700',
-      deprecated: 'bg-gray-100 text-gray-700',
-      pass: 'bg-green-100 text-green-700',
-      fail: 'bg-red-100 text-red-700',
-      blocked: 'bg-yellow-100 text-yellow-700',
-      skip: 'bg-gray-100 text-gray-700',
+      testing: 'bg-blue-100 text-blue-700 border-blue-300',
+      stable: 'bg-green-100 text-green-700 border-green-300',
+      deprecated: 'bg-gray-100 text-gray-700 border-gray-300',
     };
     return badges[status] || badges.testing;
   };
 
-  const getPriorityBadge = (priority) => {
-    const badges = {
-      critical: 'bg-red-100 text-red-700 border-red-300',
-      high: 'bg-orange-100 text-orange-700 border-orange-300',
-      medium: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-      low: 'bg-blue-100 text-blue-700 border-blue-300',
-    };
-    return badges[priority] || badges.medium;
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
   };
 
   if (loading) {
@@ -104,371 +148,239 @@ export default function TesterDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-gray-900">
                 <i className="fas fa-vial text-violet-600 mr-2"></i>
-                Tester Dashboard
+                QA Testing Dashboard
               </h1>
-              <span className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm font-medium">
-                QA & Testing
-              </span>
             </div>
             <a
               href="/"
-              className="text-sm text-gray-600 hover:text-gray-900 transition"
+              className="text-sm text-gray-600 hover:text-gray-900 transition flex items-center gap-2"
             >
-              <i className="fas fa-arrow-left mr-2"></i>
+              <i className="fas fa-arrow-left"></i>
               Back to App
             </a>
           </div>
         </div>
       </div>
 
-      {/* Stats Overview */}
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Versions</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalVersions}</p>
-              </div>
-              <div className="w-12 h-12 bg-violet-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-code-branch text-violet-600 text-xl"></i>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Version</p>
-                <p className="text-lg font-bold text-blue-600">
-                  {stats.activeVersion?.version_number || 'None'}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-rocket text-blue-600 text-xl"></i>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Tests</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalTests}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-clipboard-check text-green-600 text-xl"></i>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Pass Rate</p>
-                <p className="text-2xl font-bold text-green-600">{stats.passRate}%</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-chart-line text-green-600 text-xl"></i>
-              </div>
-            </div>
-          </div>
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Version Testing Tracker</h2>
+          <p className="text-sm text-gray-600">
+            Click on a version to expand and fill in testing details
+          </p>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
-              <button
-                onClick={() => setActiveTab('versions')}
-                className={`px-6 py-4 font-medium text-sm border-b-2 transition ${
-                  activeTab === 'versions'
-                    ? 'border-violet-600 text-violet-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <i className="fas fa-code-branch mr-2"></i>
-                Versions & Changelog
-              </button>
-              <button
-                onClick={() => setActiveTab('test-cases')}
-                className={`px-6 py-4 font-medium text-sm border-b-2 transition ${
-                  activeTab === 'test-cases'
-                    ? 'border-violet-600 text-violet-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <i className="fas fa-tasks mr-2"></i>
-                Test Cases
-              </button>
-              <button
-                onClick={() => setActiveTab('reports')}
-                className={`px-6 py-4 font-medium text-sm border-b-2 transition ${
-                  activeTab === 'reports'
-                    ? 'border-violet-600 text-violet-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <i className="fas fa-file-alt mr-2"></i>
-                Test Reports
-              </button>
-              <button
-                onClick={() => setActiveTab('submit')}
-                className={`px-6 py-4 font-medium text-sm border-b-2 transition ${
-                  activeTab === 'submit'
-                    ? 'border-violet-600 text-violet-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <i className="fas fa-plus-circle mr-2"></i>
-                Submit Test
-              </button>
-            </nav>
-          </div>
+        {/* Version Rows */}
+        <div className="space-y-3">
+          {versions.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+              <i className="fas fa-code-branch text-6xl text-gray-300 mb-4"></i>
+              <p className="text-gray-600">No versions available for testing</p>
+            </div>
+          ) : (
+            versions.map((version) => (
+              <div key={version.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                {/* Version Summary Row */}
+                <div
+                  className="flex items-center gap-4 p-4 hover:bg-gray-50 cursor-pointer transition"
+                  onClick={() => toggleExpand(version.id)}
+                >
+                  {/* Expand Icon */}
+                  <button className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-violet-100 text-violet-600 rounded hover:bg-violet-200 transition">
+                    <i className={`fas ${expandedVersion === version.id ? 'fa-minus' : 'fa-plus'}`}></i>
+                  </button>
 
-          {/* Tab Content */}
-          <div className="p-6">
-            {/* Versions Tab */}
-            {activeTab === 'versions' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Version History</h2>
+                  {/* Version Info */}
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Version Name */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Version</div>
+                      <div className="font-bold text-gray-900">v{version.version_number}</div>
+                    </div>
+
+                    {/* Release Date */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Release Date & Time</div>
+                      <div className="text-sm text-gray-700">{formatDate(version.release_date)}</div>
+                    </div>
+
+                    {/* About */}
+                    <div className="md:col-span-1">
+                      <div className="text-xs text-gray-500 mb-1">About</div>
+                      <div className="text-sm text-gray-700 truncate">{version.title}</div>
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Status</div>
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(version.status)}`}>
+                        {version.status}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {versions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <i className="fas fa-code-branch text-6xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-600">No versions yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {versions.map((version) => (
-                      <div
-                        key={version.id}
-                        className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-xl font-bold text-gray-900">
-                                v{version.version_number}
-                              </h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(version.status)}`}>
-                                {version.status}
-                              </span>
-                            </div>
-                            <p className="text-lg text-gray-700 mb-2">{version.title}</p>
-                            <p className="text-sm text-gray-500">
-                              Released: {new Date(version.release_date).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
+                {/* Expanded Testing Details */}
+                {expandedVersion === version.id && (
+                  <div className="border-t border-gray-200 p-6 bg-gray-50">
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">{version.title}</h3>
+                      {version.description && (
+                        <p className="text-sm text-gray-600 mb-4">{version.description}</p>
+                      )}
 
-                        {version.description && (
-                          <p className="text-gray-600 mb-4">{version.description}</p>
-                        )}
-
-                        {version.changelog && version.changelog.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="font-semibold text-gray-900 mb-2">Changelog:</h4>
-                            <ul className="space-y-2">
-                              {version.changelog.map((change, idx) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <span className="text-violet-600 mt-1">
-                                    {change.type === 'feature' && <i className="fas fa-plus-circle"></i>}
-                                    {change.type === 'fix' && <i className="fas fa-wrench"></i>}
-                                    {change.type === 'improvement' && <i className="fas fa-arrow-up"></i>}
-                                  </span>
-                                  <span className="text-gray-700">{change.description}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {version.known_issues && version.known_issues.length > 0 && (
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <h4 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
-                              <i className="fas fa-exclamation-triangle"></i>
-                              Known Issues:
-                            </h4>
-                            <ul className="space-y-1">
-                              {version.known_issues.map((issue, idx) => (
-                                <li key={idx} className="text-sm text-yellow-800">
-                                  • {issue}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Test Cases Tab */}
-            {activeTab === 'test-cases' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Test Scenarios</h2>
-                </div>
-
-                {testCases.length === 0 ? (
-                  <div className="text-center py-12">
-                    <i className="fas fa-tasks text-6xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-600">No test cases yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {testCases.map((testCase) => (
-                      <div
-                        key={testCase.id}
-                        className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-bold text-gray-900">{testCase.title}</h3>
-                              <span className={`px-2 py-1 rounded text-xs font-medium border ${getPriorityBadge(testCase.priority)}`}>
-                                {testCase.priority}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span>
-                                <i className="fas fa-code-branch mr-1"></i>
-                                {testCase.version?.version_number || 'N/A'}
-                              </span>
-                              {testCase.category && (
-                                <span>
-                                  <i className="fas fa-tag mr-1"></i>
-                                  {testCase.category}
+                      {/* Changelog */}
+                      {version.changelog && version.changelog.length > 0 && (
+                        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+                          <h4 className="font-semibold text-gray-900 mb-3">What's New:</h4>
+                          <ul className="space-y-2">
+                            {version.changelog.map((change, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-sm">
+                                <span className="text-violet-600 mt-0.5">
+                                  {change.type === 'feature' && <i className="fas fa-plus-circle"></i>}
+                                  {change.type === 'fix' && <i className="fas fa-wrench"></i>}
+                                  {change.type === 'improvement' && <i className="fas fa-arrow-up"></i>}
                                 </span>
-                              )}
-                            </div>
-                          </div>
+                                <span className="text-gray-700">{change.description}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
+                      )}
+                    </div>
 
-                        {testCase.description && (
-                          <p className="text-gray-600 mb-4">{testCase.description}</p>
-                        )}
+                    {/* Testing Table */}
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">
+                                Test Instructions
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-1/3">
+                                Tester Notes
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-1/6">
+                                Status
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">
+                                Upload Docs
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {version.test_cases && version.test_cases.length > 0 ? (
+                              version.test_cases.map((testCase, idx) => (
+                                <tr key={testCase.id} className="hover:bg-gray-50">
+                                  {/* Test Instructions */}
+                                  <td className="px-4 py-4 align-top">
+                                    <div className="text-sm font-medium text-gray-900 mb-2">
+                                      {idx + 1}. {testCase.title}
+                                    </div>
+                                    {testCase.description && (
+                                      <div className="text-xs text-gray-600 mb-2">{testCase.description}</div>
+                                    )}
+                                    {testCase.steps && testCase.steps.length > 0 && (
+                                      <div className="text-xs text-gray-600 space-y-1">
+                                        {testCase.steps.map((step, sIdx) => (
+                                          <div key={sIdx} className="flex gap-2">
+                                            <span className="font-medium">{step.step}.</span>
+                                            <span>{step.action}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </td>
 
-                        {testCase.steps && testCase.steps.length > 0 && (
-                          <div className="bg-gray-50 rounded-lg p-4">
-                            <h4 className="font-semibold text-gray-900 mb-3">Test Steps:</h4>
-                            <ol className="space-y-3">
-                              {testCase.steps.map((step, idx) => (
-                                <li key={idx} className="flex gap-3">
-                                  <span className="flex-shrink-0 w-6 h-6 bg-violet-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                                    {step.step}
-                                  </span>
-                                  <div className="flex-1">
-                                    <p className="text-gray-900 font-medium">{step.action}</p>
-                                    <p className="text-sm text-gray-600 mt-1">
-                                      <span className="font-medium">Expected:</span> {step.expected}
-                                    </p>
-                                  </div>
-                                </li>
-                              ))}
-                            </ol>
-                          </div>
-                        )}
+                                  {/* Tester Notes */}
+                                  <td className="px-4 py-4 align-top">
+                                    <textarea
+                                      value={testResults[testCase.id]?.notes || ''}
+                                      onChange={(e) => handleTestChange(testCase.id, 'notes', e.target.value)}
+                                      placeholder="Enter your testing notes here..."
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none text-sm"
+                                      rows="4"
+                                    />
+                                  </td>
+
+                                  {/* Status Dropdown */}
+                                  <td className="px-4 py-4 align-top">
+                                    <select
+                                      value={testResults[testCase.id]?.status || ''}
+                                      onChange={(e) => handleTestChange(testCase.id, 'status', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                                    >
+                                      <option value="">Select status</option>
+                                      <option value="pass">Properly Working</option>
+                                      <option value="fail">Not Working</option>
+                                      <option value="blocked">Partially Working</option>
+                                    </select>
+                                  </td>
+
+                                  {/* Upload Docs */}
+                                  <td className="px-4 py-4 align-top">
+                                    <div className="space-y-2">
+                                      <label className="block">
+                                        <span className="sr-only">Choose file</span>
+                                        <input
+                                          type="file"
+                                          onChange={(e) => handleFileUpload(testCase.id, e.target.files[0])}
+                                          className="block w-full text-sm text-gray-500
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-lg file:border-0
+                                            file:text-sm file:font-medium
+                                            file:bg-violet-50 file:text-violet-700
+                                            hover:file:bg-violet-100
+                                            file:cursor-pointer cursor-pointer"
+                                        />
+                                      </label>
+                                      {testResults[testCase.id]?.document && (
+                                        <div className="text-xs text-green-600 flex items-center gap-1">
+                                          <i className="fas fa-check-circle"></i>
+                                          {testResults[testCase.id].document.name}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
+                                  No test cases defined for this version
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
+
+                      {/* Save Button */}
+                      {version.test_cases && version.test_cases.length > 0 && (
+                        <div className="border-t border-gray-200 p-4 bg-gray-50">
+                          <button
+                            onClick={() => handleSaveTestResults(version.id)}
+                            className="px-6 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition flex items-center gap-2"
+                          >
+                            <i className="fas fa-save"></i>
+                            Save Test Results for v{version.version_number}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Test Reports Tab */}
-            {activeTab === 'reports' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Test Results</h2>
-                </div>
-
-                {testReports.length === 0 ? (
-                  <div className="text-center py-12">
-                    <i className="fas fa-file-alt text-6xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-600">No test reports yet</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Test Case
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Version
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Tester
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Date
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {testReports.map((report) => (
-                          <tr key={report.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">
-                                {report.test_case?.title || 'N/A'}
-                              </div>
-                              {report.notes && (
-                                <div className="text-sm text-gray-500 mt-1">{report.notes}</div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {report.version?.version_number || 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {report.tester_name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(report.status)}`}>
-                                {report.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(report.created_at).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Submit Test Tab */}
-            {activeTab === 'submit' && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Submit Test Report</h2>
-                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <i className="fas fa-clipboard-check text-6xl text-gray-300 mb-4"></i>
-                  <p className="text-gray-600 mb-4">Test report submission form coming soon</p>
-                  <p className="text-sm text-gray-500">
-                    This will allow testers to submit their test results directly
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+            ))
+          )}
         </div>
       </div>
     </div>
