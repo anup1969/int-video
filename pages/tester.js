@@ -6,6 +6,17 @@ export default function TesterDashboard() {
   const [expandedVersion, setExpandedVersion] = useState(null);
   const [testResults, setTestResults] = useState({});
   const [loading, setLoading] = useState(true);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    version_id: '',
+    report_type: 'bug',
+    title: '',
+    description: '',
+    severity: 'medium',
+    steps_to_reproduce: '',
+    screenshot: null,
+    screenshotUrl: ''
+  });
 
   useEffect(() => {
     loadVersions();
@@ -194,6 +205,114 @@ export default function TesterDashboard() {
     } catch (error) {
       console.error('Failed to save test results:', error);
       alert('Failed to save test results');
+    }
+  };
+
+  // Ad-hoc report handlers
+  const openReportModal = (versionId) => {
+    setReportForm({
+      version_id: versionId,
+      report_type: 'bug',
+      title: '',
+      description: '',
+      severity: 'medium',
+      steps_to_reproduce: '',
+      screenshot: null,
+      screenshotUrl: ''
+    });
+    setShowReportModal(true);
+  };
+
+  const closeReportModal = () => {
+    setShowReportModal(false);
+    setReportForm({
+      version_id: '',
+      report_type: 'bug',
+      title: '',
+      description: '',
+      severity: 'medium',
+      steps_to_reproduce: '',
+      screenshot: null,
+      screenshotUrl: ''
+    });
+  };
+
+  const handleReportFormChange = (field, value) => {
+    setReportForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleReportFileUpload = async (file) => {
+    if (!file) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `adhoc-${Date.now()}.${fileExt}`;
+      const filePath = `test-reports/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('campaign-files')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('campaign-files')
+        .getPublicUrl(filePath);
+
+      setReportForm(prev => ({
+        ...prev,
+        screenshot: file,
+        screenshotUrl: publicUrl
+      }));
+    } catch (error) {
+      console.error('Failed to upload screenshot:', error);
+      alert('Failed to upload screenshot');
+    }
+  };
+
+  const submitAdHocReport = async () => {
+    // Validate required fields
+    if (!reportForm.version_id || !reportForm.title || !reportForm.description) {
+      alert('Please fill in all required fields (Version, Title, Description)');
+      return;
+    }
+
+    try {
+      const reportData = {
+        version_id: reportForm.version_id,
+        report_type: reportForm.report_type,
+        title: reportForm.title,
+        description: reportForm.description,
+        severity: reportForm.report_type === 'bug' ? reportForm.severity : null,
+        steps_to_reproduce: reportForm.steps_to_reproduce || null,
+        tester_name: 'Tester',
+        browser: navigator.userAgent.includes('Chrome') ? 'Chrome' :
+                 navigator.userAgent.includes('Firefox') ? 'Firefox' :
+                 navigator.userAgent.includes('Safari') ? 'Safari' : 'Other',
+        device: /Mobile|Android|iPhone/.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+        screenshots: reportForm.screenshotUrl ? [reportForm.screenshotUrl] : []
+      };
+
+      const response = await fetch('/api/ad-hoc-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportData)
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to submit report');
+      }
+
+      alert('Report submitted successfully!');
+      closeReportModal();
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+      alert('Failed to submit report: ' + error.message);
     }
   };
 
@@ -558,7 +677,221 @@ export default function TesterDashboard() {
             ))
           )}
         </div>
+
+        {/* Floating Report Bug/Suggestion Button */}
+        <button
+          onClick={() => {
+            if (versions.length > 0) {
+              openReportModal(versions[0].id); // Open with first version selected
+            } else {
+              alert('No versions available to report against');
+            }
+          }}
+          className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 z-50"
+          title="Report Bug or Suggestion"
+        >
+          <i className="fas fa-plus text-xl"></i>
+        </button>
       </div>
+
+      {/* Ad-Hoc Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-20 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <i className="fas fa-bug text-orange-500"></i>
+                Report Bug or Suggestion
+              </h3>
+              <button
+                onClick={closeReportModal}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Version Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Version <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={reportForm.version_id}
+                  onChange={(e) => handleReportFormChange('version_id', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="">Select a version</option>
+                  {versions.map(version => (
+                    <option key={version.id} value={version.id}>
+                      v{version.version_number} - {version.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Report Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Report Type <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="report_type"
+                      value="bug"
+                      checked={reportForm.report_type === 'bug'}
+                      onChange={(e) => handleReportFormChange('report_type', e.target.value)}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-sm">Bug</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="report_type"
+                      value="suggestion"
+                      checked={reportForm.report_type === 'suggestion'}
+                      onChange={(e) => handleReportFormChange('report_type', e.target.value)}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-sm">Suggestion</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="report_type"
+                      value="improvement"
+                      checked={reportForm.report_type === 'improvement'}
+                      onChange={(e) => handleReportFormChange('report_type', e.target.value)}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-sm">Improvement</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Severity (only for bugs) */}
+              {reportForm.report_type === 'bug' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Severity
+                  </label>
+                  <select
+                    value={reportForm.severity}
+                    onChange={(e) => handleReportFormChange('severity', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={reportForm.title}
+                  onChange={(e) => handleReportFormChange('title', e.target.value)}
+                  placeholder="Brief description of the issue or suggestion"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={reportForm.description}
+                  onChange={(e) => handleReportFormChange('description', e.target.value)}
+                  placeholder="Detailed description..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              {/* Steps to Reproduce (optional, mainly for bugs) */}
+              {reportForm.report_type === 'bug' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Steps to Reproduce (Optional)
+                  </label>
+                  <textarea
+                    value={reportForm.steps_to_reproduce}
+                    onChange={(e) => handleReportFormChange('steps_to_reproduce', e.target.value)}
+                    placeholder="1. Go to...&#10;2. Click on...&#10;3. See error"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Screenshot Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Screenshot (Optional)
+                </label>
+                {reportForm.screenshotUrl ? (
+                  <div className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
+                    <i className="fas fa-check-circle text-green-600"></i>
+                    <span className="text-sm text-green-700 flex-1 truncate">
+                      {reportForm.screenshot?.name || 'Screenshot uploaded'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setReportForm(prev => ({
+                          ...prev,
+                          screenshot: null,
+                          screenshotUrl: ''
+                        }));
+                      }}
+                      className="text-red-600 hover:text-red-800 text-xs px-2 py-1 hover:bg-red-50 rounded transition"
+                    >
+                      <i className="fas fa-times"></i>
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleReportFileUpload(e.target.files[0])}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={closeReportModal}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitAdHocReport}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition flex items-center gap-2"
+              >
+                <i className="fas fa-paper-plane"></i>
+                Submit Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

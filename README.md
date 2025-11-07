@@ -1,6 +1,6 @@
 # Interactive Video Campaign Platform
 
-**Version:** 1.7.0 (Tester Dashboard with File Management)
+**Version:** 1.8.0 (Ad-Hoc Bug & Suggestion Reporting)
 **Date:** November 7, 2025
 **Status:** Production - Fully Functional
 **Live URL:** https://int-video.vercel.app
@@ -316,6 +316,17 @@ vercel alias <deployment-url> int-video.vercel.app
 ---
 
 ## 🔄 Recent Updates
+
+### Version 1.8.0 - November 7, 2025 (TESTING)
+- ✅ **Ad-Hoc Bug & Suggestion Reporting**:
+  - Floating orange "+" button for quick report access
+  - Report modal with comprehensive form (Bug/Suggestion/Improvement)
+  - Severity levels for bugs (Critical, High, Medium, Low)
+  - Steps to reproduce field for detailed bug documentation
+  - Screenshot upload support for visual evidence
+  - Database table with status tracking (open, in_progress, resolved, wont_fix)
+  - Automatic browser and device detection
+  - Lighter modal overlay for better readability
 
 ### Version 1.7.0 - November 7, 2025 (TESTING)
 - ✅ **Enhanced Tester Dashboard**:
