@@ -356,13 +356,22 @@ export default function TesterDashboard() {
                 QA Testing Dashboard
               </h1>
             </div>
-            <a
-              href="/"
-              className="text-sm text-gray-600 hover:text-gray-900 transition flex items-center gap-2"
-            >
-              <i className="fas fa-arrow-left"></i>
-              Back to App
-            </a>
+            <div className="flex items-center gap-3">
+              <a
+                href="/admin-reports"
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2 text-sm font-medium"
+              >
+                <i className="fas fa-shield-alt"></i>
+                Admin Reports
+              </a>
+              <a
+                href="/"
+                className="text-sm text-gray-600 hover:text-gray-900 transition flex items-center gap-2"
+              >
+                <i className="fas fa-arrow-left"></i>
+                Back to App
+              </a>
+            </div>
           </div>
         </div>
       </div>
