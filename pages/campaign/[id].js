@@ -70,6 +70,7 @@ async function uploadFileInChunks(blob, fileName, fileType, onProgress) {
   throw new Error('Upload completed but no result was returned');
 }
 
+// Campaign Viewer Component - Updated with password protection for end-users
 export default function CampaignViewer() {
   const router = useRouter();
   const { id } = router.query;
