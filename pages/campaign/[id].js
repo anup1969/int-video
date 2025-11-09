@@ -160,9 +160,9 @@ export default function CampaignViewer() {
 
         // Check if password is required
         if (data.campaign.password) {
-          // Check session storage for password validation
+          // Check session storage for password validation (only in browser)
           const sessionKey = `viewer_${id}_password_validated`;
-          const isValidated = sessionStorage.getItem(sessionKey) === 'true';
+          const isValidated = typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) === 'true';
 
           if (!isValidated) {
             setCampaignPassword(data.campaign.password);
@@ -274,13 +274,15 @@ export default function CampaignViewer() {
 
     if (passwordEntered === campaignPassword) {
       // Password correct - save to session storage and reload campaign
-      const sessionKey = `viewer_${id}_password_validated`;
-      sessionStorage.setItem(sessionKey, 'true');
-      setPasswordRequired(false);
-      setPasswordError(false);
+      if (typeof window !== 'undefined') {
+        const sessionKey = `viewer_${id}_password_validated`;
+        sessionStorage.setItem(sessionKey, 'true');
+        setPasswordRequired(false);
+        setPasswordError(false);
 
-      // Reload the page to trigger campaign loading
-      window.location.reload();
+        // Reload the page to trigger campaign loading
+        window.location.reload();
+      }
     } else {
       // Password incorrect - show error
       setPasswordError(true);
