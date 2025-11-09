@@ -155,7 +155,7 @@ export default function VoiceAssistant() {
           showFeedback(`Campaign "${campaignName}" created successfully!`, 'success');
           // Redirect to builder after 1 second
           setTimeout(() => {
-            router.push(`/builder/${data.campaign.id}`);
+            router.push(`/?id=${data.campaign.id}`);
           }, 1000);
         } else {
           const errorData = await response.json().catch(() => ({}));
