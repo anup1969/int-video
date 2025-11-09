@@ -508,9 +508,6 @@ export default function ResponseViewer() {
                       </th>
                     );
                   })}
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">
-                    Actions
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -533,16 +530,6 @@ export default function ResponseViewer() {
                         </div>
                       </td>
                     ))}
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => router.push(`/?id=${id}`)}
-                        className="px-3 py-1.5 bg-violet-600 text-white rounded hover:bg-violet-700 transition text-xs font-medium inline-flex items-center gap-1"
-                        title="Open campaign builder"
-                      >
-                        <i className="fas fa-edit"></i>
-                        Open Builder
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>

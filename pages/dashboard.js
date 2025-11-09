@@ -589,10 +589,11 @@ function CampaignCard({ campaign, viewMode, onEdit, onSettings, onDuplicate, onD
             <div className="flex items-center gap-1 relative">
               <button
                 onClick={onEdit}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-                title="Edit Campaign"
+                className="px-3 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition flex items-center gap-2"
+                title="Open Builder"
               >
-                <i className="fas fa-edit text-gray-600"></i>
+                <i className="fas fa-edit"></i>
+                Open Builder
               </button>
 
               <button
