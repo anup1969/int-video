@@ -59,12 +59,6 @@ export default function FlowBuilder() {
   const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved, error
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Password Protection State
-  const [passwordRequired, setPasswordRequired] = useState(false);
-  const [passwordEntered, setPasswordEntered] = useState('');
-  const [passwordError, setPasswordError] = useState(false);
-  const [isLoadingCampaign, setIsLoadingCampaign] = useState(false);
-
   // UI State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -124,7 +118,6 @@ export default function FlowBuilder() {
       if (!id) return;
 
       try {
-        setIsLoadingCampaign(true);
         const response = await fetch(`/api/campaigns/${id}`);
         if (response.ok) {
           const { campaign, steps, connections: loadedConnections } = await response.json();
@@ -134,20 +127,6 @@ export default function FlowBuilder() {
             stepCount: steps?.length,
             connectionCount: loadedConnections?.length
           });
-
-          // Check if password is required
-          if (campaign.password) {
-            // Check session storage for password validation
-            const sessionKey = `builder_${id}_password_validated`;
-            const isValidated = sessionStorage.getItem(sessionKey) === 'true';
-
-            if (!isValidated) {
-              setPassword(campaign.password);
-              setPasswordRequired(true);
-              setIsLoadingCampaign(false);
-              return;
-            }
-          }
 
           setCampaignId(campaign.id);
           setCampaignName(campaign.name);
@@ -407,25 +386,6 @@ export default function FlowBuilder() {
   const handleZoomReset = () => {
     setScale(1);
     setPanPosition({ x: 0, y: 0 });
-  };
-
-  // Password submit handler
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-
-    if (passwordEntered === password) {
-      // Password correct - save to session storage and reload campaign
-      const sessionKey = `builder_${router.query.id}_password_validated`;
-      sessionStorage.setItem(sessionKey, 'true');
-      setPasswordRequired(false);
-      setPasswordError(false);
-
-      // Reload the page to trigger campaign loading
-      window.location.reload();
-    } else {
-      // Password incorrect - show error
-      setPasswordError(true);
-    }
   };
 
   // Sidebar toggle handler
@@ -904,67 +864,6 @@ export default function FlowBuilder() {
       );
     });
   };
-
-  // If password is required, show password modal
-  if (passwordRequired) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-600">
-        <div className="max-w-md w-full mx-4 bg-white rounded-lg shadow-xl p-8">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="fas fa-lock text-violet-600 text-3xl"></i>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Builder Access Protected</h2>
-            <p className="text-gray-600">
-              This campaign builder requires a password to access
-            </p>
-          </div>
-
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Enter Password
-              </label>
-              <input
-                id="password"
-                type="text"
-                value={passwordEntered}
-                onChange={(e) => {
-                  setPasswordEntered(e.target.value);
-                  setPasswordError(false);
-                }}
-                placeholder="Enter builder password"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent transition ${
-                  passwordError
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-gray-300'
-                }`}
-                autoFocus
-              />
-              {passwordError && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                  <i className="fas fa-exclamation-circle"></i>
-                  Incorrect password. Please try again.
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
-            >
-              <i className="fas fa-unlock mr-2"></i>
-              Access Builder
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-            Don't have the password? Contact the campaign owner.
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
