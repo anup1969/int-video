@@ -124,8 +124,23 @@ export default function VoiceAssistant() {
     setTimeout(() => setFeedback(null), 3000);
   };
 
+  // Helper function to normalize commands (remove filler words)
+  const normalizeCommand = (cmd) => {
+    return cmd
+      .replace(/\b(the|a|an|to|please|can you|could you|would you)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // Helper function to check if command matches any patterns
+  const matchesAny = (cmd, patterns) => {
+    const normalized = normalizeCommand(cmd);
+    return patterns.some(pattern => normalized.includes(pattern));
+  };
+
   const processCommand = async (command) => {
     console.log('[Jarvis] Processing command:', command);
+    console.log('[Jarvis] Normalized:', normalizeCommand(command));
 
     // Deactivate after processing command
     wakeWordDetected.current = false;
@@ -133,7 +148,7 @@ export default function VoiceAssistant() {
 
     try {
       // Create new campaign
-      if (command.includes('create') && command.includes('campaign')) {
+      if (matchesAny(command, ['create campaign', 'new campaign', 'make campaign', 'build campaign'])) {
         console.log('[Jarvis] Creating campaign...');
         const nameMatch = command.match(/(?:named?|called?)\s+(.+)/i);
         const campaignName = nameMatch ? nameMatch[1].trim() : `New Campaign ${Date.now()}`;
@@ -166,44 +181,45 @@ export default function VoiceAssistant() {
       }
 
       // Go to dashboard
-      if (command.includes('go to dashboard') || command.includes('show dashboard') || command.includes('open dashboard')) {
+      if (matchesAny(command, ['dashboard', 'show campaigns', 'view campaigns', 'list campaigns', 'home'])) {
         showFeedback('Opening dashboard...', 'success');
         router.push('/dashboard');
         return;
       }
 
       // Go to responses
-      if (command.includes('go to response') || command.includes('show response')) {
+      if (matchesAny(command, ['responses', 'show responses', 'view responses', 'response page'])) {
         showFeedback('Opening responses...', 'success');
         router.push('/responses');
         return;
       }
 
-      // Show campaigns
-      if (command.includes('show') && command.includes('campaign')) {
-        showFeedback('Opening dashboard...', 'success');
-        router.push('/dashboard');
+      // Go to profile
+      if (matchesAny(command, ['profile', 'my profile', 'account'])) {
+        showFeedback('Opening profile...', 'success');
+        router.push('/profile');
         return;
       }
 
       // Delete campaign (requires confirmation)
-      if (command.includes('delete') && command.includes('campaign')) {
+      if (matchesAny(command, ['delete campaign', 'remove campaign'])) {
         showFeedback('Please use the dashboard to delete campaigns for safety', 'warning');
         return;
       }
 
       // Add step (only works in builder)
-      if (command.includes('add') && (command.includes('step') || command.includes('video') || command.includes('question'))) {
-        if (router.pathname.includes('/builder/')) {
+      if (matchesAny(command, ['add step', 'add video', 'new step', 'create step'])) {
+        if (router.pathname === '/' || router.pathname.includes('?id=')) {
+          const normalized = normalizeCommand(command);
           let stepType = 'open-ended'; // default
 
-          if (command.includes('video')) stepType = 'open-ended';
-          else if (command.includes('multiple choice') || command.includes('multiple-choice')) stepType = 'multiple-choice';
-          else if (command.includes('button')) stepType = 'button';
-          else if (command.includes('contact form')) stepType = 'contact-form';
-          else if (command.includes('nps')) stepType = 'nps';
-          else if (command.includes('file upload')) stepType = 'file-upload';
-          else if (command.includes('text')) stepType = 'text';
+          if (normalized.includes('video') || normalized.includes('open ended')) stepType = 'open-ended';
+          else if (normalized.includes('multiple choice')) stepType = 'multiple-choice';
+          else if (normalized.includes('button')) stepType = 'button';
+          else if (normalized.includes('contact form')) stepType = 'contact-form';
+          else if (normalized.includes('nps')) stepType = 'nps';
+          else if (normalized.includes('file upload')) stepType = 'file-upload';
+          else if (normalized.includes('text')) stepType = 'text';
 
           showFeedback(`Adding ${stepType} step... Please use the builder UI`, 'info');
         } else {
@@ -213,8 +229,8 @@ export default function VoiceAssistant() {
       }
 
       // Save campaign
-      if (command.includes('save') && command.includes('campaign')) {
-        if (router.pathname.includes('/builder/')) {
+      if (matchesAny(command, ['save', 'save campaign', 'save changes'])) {
+        if (router.pathname === '/' || router.pathname.includes('?id=')) {
           showFeedback('Please use the Save button in the builder', 'info');
         } else {
           showFeedback('This command only works in the campaign builder', 'warning');
@@ -222,14 +238,22 @@ export default function VoiceAssistant() {
         return;
       }
 
+      // Logout
+      if (matchesAny(command, ['logout', 'log out', 'sign out'])) {
+        showFeedback('Logging out...', 'success');
+        router.push('/login');
+        return;
+      }
+
       // Help command
-      if (command.includes('help') || command.includes('what can you do')) {
-        showFeedback('Commands: create campaign, go to dashboard, show campaigns, add step', 'info');
+      if (matchesAny(command, ['help', 'what can you do', 'commands', 'what commands'])) {
+        showFeedback('Try: create campaign, dashboard, responses, profile, add step, save, logout', 'info');
         return;
       }
 
       // Unknown command
-      showFeedback('Sorry, I didn\'t understand that command', 'warning');
+      console.log('[Jarvis] Unknown command:', command);
+      showFeedback('Sorry, I didn\'t understand that command. Say "help" for available commands.', 'warning');
 
     } catch (error) {
       console.error('Command execution error:', error);
