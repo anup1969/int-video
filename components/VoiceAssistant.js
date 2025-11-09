@@ -159,9 +159,17 @@ export default function VoiceAssistant() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        console.error('[Jarvis] API error:', error);
-        showFeedback(error.error || 'Error processing command', 'error');
+        const errorText = await response.text();
+        console.error('[Jarvis] API error response:', errorText);
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch (e) {
+          console.error('[Jarvis] Could not parse error as JSON');
+          error = { error: 'Error processing command' };
+        }
+        showFeedback(error.error || error.feedback || 'Error processing command', 'error');
+        speak(error.error || error.feedback || 'Sorry, I encountered an error');
         return;
       }
 

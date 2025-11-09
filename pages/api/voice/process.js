@@ -99,13 +99,29 @@ Examples:
       text = text.replace(/```\n?/g, '');
     }
 
-    console.log('[Voice API] Gemini response:', text);
+    console.log('[Voice API] Gemini raw response:', text);
 
-    const parsed = JSON.parse(text);
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (parseError) {
+      console.error('[Voice API] JSON parse error:', parseError);
+      console.error('[Voice API] Failed to parse text:', text);
+      return res.status(500).json({
+        action: 'UNKNOWN',
+        params: {},
+        feedback: 'Sorry, I had trouble understanding that command.'
+      });
+    }
 
+    console.log('[Voice API] Parsed successfully:', parsed);
     return res.status(200).json(parsed);
   } catch (error) {
-    console.error('[Voice API] Error:', error);
+    console.error('[Voice API] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return res.status(500).json({
       action: 'UNKNOWN',
       params: {},
