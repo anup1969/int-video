@@ -10,7 +10,7 @@ export default function VoiceAssistant() {
   const recognitionRef = useRef(null);
   const wakeWordDetected = useRef(false);
 
-  // Initialize speech recognition
+  // Initialize speech recognition and auto-start
   useEffect(() => {
     if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -21,9 +21,16 @@ export default function VoiceAssistant() {
 
       recognitionRef.current.onresult = (event) => {
         const current = event.resultIndex;
-        const transcriptText = event.results[current][0].transcript.toLowerCase();
+        const transcriptText = event.results[current][0].transcript.toLowerCase().trim();
+
+        console.log('Transcript:', transcriptText, 'isFinal:', event.results[current].isFinal);
 
         setTranscript(transcriptText);
+
+        // Only process final results
+        if (!event.results[current].isFinal) {
+          return;
+        }
 
         // Check for wake word
         if (!wakeWordDetected.current && (transcriptText.includes('hey jarvis') || transcriptText.includes('hey javis') || transcriptText.includes('hi jarvis'))) {
@@ -31,11 +38,13 @@ export default function VoiceAssistant() {
           setIsActive(true);
           showFeedback('Yes, how can I help?', 'success');
           setTranscript('');
+          console.log('Wake word detected! Ready for command...');
           return;
         }
 
         // Process commands after wake word detected
-        if (wakeWordDetected.current && event.results[current].isFinal) {
+        if (wakeWordDetected.current) {
+          console.log('Processing command:', transcriptText);
           processCommand(transcriptText);
           setTranscript('');
         }
@@ -47,11 +56,16 @@ export default function VoiceAssistant() {
           // Don't show error for no-speech, just keep listening
           return;
         }
+        if (event.error === 'not-allowed') {
+          showFeedback('Microphone permission denied', 'error');
+          setIsListening(false);
+          return;
+        }
         showFeedback(`Error: ${event.error}`, 'error');
       };
 
       recognitionRef.current.onend = () => {
-        // Restart listening if still active
+        // Restart listening automatically
         if (isListening) {
           try {
             recognitionRef.current.start();
@@ -60,6 +74,17 @@ export default function VoiceAssistant() {
           }
         }
       };
+
+      // Auto-start listening on mount
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        console.log('Voice assistant auto-started. Say "Hey Jarvis" to activate.');
+      } catch (e) {
+        console.error('Error auto-starting recognition:', e);
+      }
+    } else {
+      showFeedback('Speech recognition not supported in this browser', 'error');
     }
 
     return () => {
@@ -67,7 +92,7 @@ export default function VoiceAssistant() {
         recognitionRef.current.stop();
       }
     };
-  }, [isListening]);
+  }, []);
 
   const startListening = () => {
     if (recognitionRef.current) {
@@ -100,7 +125,7 @@ export default function VoiceAssistant() {
   };
 
   const processCommand = async (command) => {
-    console.log('Processing command:', command);
+    console.log('[Jarvis] Processing command:', command);
 
     // Deactivate after processing command
     wakeWordDetected.current = false;
@@ -109,8 +134,12 @@ export default function VoiceAssistant() {
     try {
       // Create new campaign
       if (command.includes('create') && command.includes('campaign')) {
+        console.log('[Jarvis] Creating campaign...');
         const nameMatch = command.match(/(?:named?|called?)\s+(.+)/i);
         const campaignName = nameMatch ? nameMatch[1].trim() : `New Campaign ${Date.now()}`;
+
+        console.log('[Jarvis] Campaign name:', campaignName);
+        showFeedback(`Creating campaign "${campaignName}"...`, 'info');
 
         const response = await fetch('/api/campaigns', {
           method: 'POST',
@@ -118,15 +147,20 @@ export default function VoiceAssistant() {
           body: JSON.stringify({ name: campaignName })
         });
 
+        console.log('[Jarvis] Response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('[Jarvis] Campaign created:', data);
           showFeedback(`Campaign "${campaignName}" created successfully!`, 'success');
           // Redirect to builder after 1 second
           setTimeout(() => {
             router.push(`/builder/${data.campaign.id}`);
           }, 1000);
         } else {
-          showFeedback('Failed to create campaign', 'error');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('[Jarvis] Failed to create campaign:', errorData);
+          showFeedback(`Failed to create campaign: ${errorData.error || 'Unknown error'}`, 'error');
         }
         return;
       }
@@ -205,29 +239,38 @@ export default function VoiceAssistant() {
 
   return (
     <>
-      {/* Floating Button */}
-      <button
-        onClick={isListening ? stopListening : startListening}
-        className={`fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-lg z-50 flex items-center justify-center transition-all duration-300 ${
-          isListening
-            ? isActive
-              ? 'bg-green-500 hover:bg-green-600 animate-pulse'
-              : 'bg-blue-500 hover:bg-blue-600'
-            : 'bg-violet-600 hover:bg-violet-700'
-        }`}
-        title={isListening ? 'Stop Voice Assistant' : 'Start Voice Assistant'}
-      >
-        {isListening ? (
-          <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0v-.5A1.5 1.5 0 0114.5 6c.526 0 .988-.27 1.256-.679a6.012 6.012 0 011.913 2.706.75.75 0 11-1.442.366 4.512 4.512 0 00-1.447-2.142.75.75 0 01-.354-.882l.157-.472a6.01 6.01 0 00-1.783-.68A1.75 1.75 0 0013 5a2.5 2.5 0 00-5 0 1.75 1.75 0 00-.356.218 6.01 6.01 0 00-1.783.68l.157.472a.75.75 0 01-.354.882 4.512 4.512 0 00-1.447 2.142.75.75 0 11-1.442-.366zM10 14a4 4 0 004-4v-1.5a.5.5 0 00-.5-.5h-7a.5.5 0 00-.5.5V10a4 4 0 004 4z" clipRule="evenodd" />
-          </svg>
-        ) : (
-          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Floating Button with Status */}
+      <div className="fixed bottom-8 right-8 z-50">
+        <button
+          onClick={isListening ? stopListening : startListening}
+          className={`w-16 h-16 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 relative ${
+            isListening
+              ? isActive
+                ? 'bg-green-500 hover:bg-green-600 animate-pulse'
+                : 'bg-blue-500 hover:bg-blue-600'
+              : 'bg-gray-400 hover:bg-gray-500'
+          }`}
+          title={isListening ? (isActive ? 'Listening for command...' : 'Listening for "Hey Jarvis"') : 'Voice Assistant stopped'}
+        >
+          {/* Subtle breathing animation ring when listening but not active */}
+          {isListening && !isActive && (
+            <div className="absolute inset-0 rounded-full bg-blue-300 animate-ping opacity-20"></div>
+          )}
+
+          <svg className="w-8 h-8 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
+        </button>
+
+        {/* Status indicator */}
+        {isListening && (
+          <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+            <div className={`text-xs font-medium px-2 py-1 rounded ${isActive ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`}>
+              {isActive ? '🎤 Listening' : '👂 Say "Hey Jarvis"'}
+            </div>
+          </div>
         )}
-      </button>
+      </div>
 
       {/* Transcript Display */}
       {isListening && transcript && (
