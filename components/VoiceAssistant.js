@@ -36,6 +36,7 @@ export default function VoiceAssistant() {
         if (!wakeWordDetected.current && (transcriptText.includes('hey jarvis') || transcriptText.includes('hey javis') || transcriptText.includes('hi jarvis'))) {
           wakeWordDetected.current = true;
           setIsActive(true);
+          speak('At your service sir');
           showFeedback('Yes, how can I help?', 'success');
           setTranscript('');
           console.log('Wake word detected! Ready for command...');
@@ -122,6 +123,22 @@ export default function VoiceAssistant() {
   const showFeedback = (message, type = 'info') => {
     setFeedback({ message, type });
     setTimeout(() => setFeedback(null), 3000);
+  };
+
+  // Text-to-speech function
+  const speak = (text) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0; // Normal speed
+      utterance.pitch = 0.9; // Slightly lower pitch for a more authoritative voice
+      utterance.volume = 1.0; // Full volume
+
+      window.speechSynthesis.speak(utterance);
+      console.log('[Jarvis] Speaking:', text);
+    }
   };
 
   const processCommand = async (command) => {
