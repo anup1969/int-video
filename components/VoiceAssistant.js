@@ -124,140 +124,129 @@ export default function VoiceAssistant() {
     setTimeout(() => setFeedback(null), 3000);
   };
 
-  // Helper function to normalize commands (remove filler words)
-  const normalizeCommand = (cmd) => {
-    return cmd
-      .replace(/\b(the|a|an|to|please|can you|could you|would you)\b/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  };
-
-  // Helper function to check if command matches any patterns
-  const matchesAny = (cmd, patterns) => {
-    const normalized = normalizeCommand(cmd);
-    return patterns.some(pattern => normalized.includes(pattern));
-  };
-
   const processCommand = async (command) => {
     console.log('[Jarvis] Processing command:', command);
-    console.log('[Jarvis] Normalized:', normalizeCommand(command));
 
     // Deactivate after processing command
     wakeWordDetected.current = false;
     setIsActive(false);
 
     try {
-      // Create new campaign
-      if (matchesAny(command, ['create campaign', 'new campaign', 'make campaign', 'build campaign'])) {
-        console.log('[Jarvis] Creating campaign...');
-        const nameMatch = command.match(/(?:named?|called?)\s+(.+)/i);
-        const campaignName = nameMatch ? nameMatch[1].trim() : `New Campaign ${Date.now()}`;
+      // Send command to Gemini NLP API
+      showFeedback('Processing...', 'info');
 
-        console.log('[Jarvis] Campaign name:', campaignName);
-        showFeedback(`Creating campaign "${campaignName}"...`, 'info');
+      const response = await fetch('/api/voice/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+      });
 
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('[Jarvis] API error:', error);
+        showFeedback(error.error || 'Error processing command', 'error');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('[Jarvis] Gemini result:', result);
+
+      // Show feedback from Gemini
+      if (result.feedback) {
+        showFeedback(result.feedback, 'info');
+      }
+
+      // Execute action based on Gemini's interpretation
+      await executeAction(result.action, result.params);
+
+    } catch (error) {
+      console.error('Command execution error:', error);
+      showFeedback('Error executing command', 'error');
+    }
+  };
+
+  const executeAction = async (action, params) => {
+    console.log('[Jarvis] Executing action:', action, params);
+
+    switch (action) {
+      case 'CREATE_CAMPAIGN': {
+        const campaignName = params.name || `New Campaign ${Date.now()}`;
         const response = await fetch('/api/campaigns', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: campaignName })
         });
 
-        console.log('[Jarvis] Response status:', response.status);
-
         if (response.ok) {
           const data = await response.json();
-          console.log('[Jarvis] Campaign created:', data);
-          showFeedback(`Campaign "${campaignName}" created successfully!`, 'success');
-          // Redirect to builder after 1 second
-          setTimeout(() => {
-            router.push(`/?id=${data.campaign.id}`);
-          }, 1000);
+          showFeedback(`Campaign "${campaignName}" created!`, 'success');
+          setTimeout(() => router.push(`/?id=${data.campaign.id}`), 1000);
         } else {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('[Jarvis] Failed to create campaign:', errorData);
-          showFeedback(`Failed to create campaign: ${errorData.error || 'Unknown error'}`, 'error');
+          showFeedback('Failed to create campaign', 'error');
         }
-        return;
+        break;
       }
 
-      // Go to dashboard
-      if (matchesAny(command, ['dashboard', 'show campaigns', 'view campaigns', 'list campaigns', 'home'])) {
-        showFeedback('Opening dashboard...', 'success');
+      case 'GO_TO_DASHBOARD':
         router.push('/dashboard');
-        return;
-      }
+        break;
 
-      // Go to responses
-      if (matchesAny(command, ['responses', 'show responses', 'view responses', 'response page'])) {
-        showFeedback('Opening responses...', 'success');
+      case 'GO_TO_RESPONSES':
         router.push('/responses');
-        return;
-      }
+        break;
 
-      // Go to profile
-      if (matchesAny(command, ['profile', 'my profile', 'account'])) {
-        showFeedback('Opening profile...', 'success');
+      case 'GO_TO_PROFILE':
         router.push('/profile');
-        return;
-      }
+        break;
 
-      // Delete campaign (requires confirmation)
-      if (matchesAny(command, ['delete campaign', 'remove campaign'])) {
-        showFeedback('Please use the dashboard to delete campaigns for safety', 'warning');
-        return;
-      }
+      case 'DELETE_CAMPAIGN':
+        showFeedback('Campaign deletion coming soon with voice confirmation', 'info');
+        break;
 
-      // Add step (only works in builder)
-      if (matchesAny(command, ['add step', 'add video', 'new step', 'create step'])) {
+      case 'DUPLICATE_CAMPAIGN':
+        showFeedback('Campaign duplication coming soon', 'info');
+        break;
+
+      case 'ACTIVATE_CAMPAIGN':
+      case 'PAUSE_CAMPAIGN':
+      case 'ARCHIVE_CAMPAIGN':
+        showFeedback('Campaign status changes coming soon', 'info');
+        break;
+
+      case 'COPY_URL':
+        showFeedback('URL copying coming soon', 'info');
+        break;
+
+      case 'ADD_STEP':
         if (router.pathname === '/' || router.pathname.includes('?id=')) {
-          const normalized = normalizeCommand(command);
-          let stepType = 'open-ended'; // default
-
-          if (normalized.includes('video') || normalized.includes('open ended')) stepType = 'open-ended';
-          else if (normalized.includes('multiple choice')) stepType = 'multiple-choice';
-          else if (normalized.includes('button')) stepType = 'button';
-          else if (normalized.includes('contact form')) stepType = 'contact-form';
-          else if (normalized.includes('nps')) stepType = 'nps';
-          else if (normalized.includes('file upload')) stepType = 'file-upload';
-          else if (normalized.includes('text')) stepType = 'text';
-
+          const stepType = params.stepType || 'open-ended';
           showFeedback(`Adding ${stepType} step... Please use the builder UI`, 'info');
         } else {
           showFeedback('This command only works in the campaign builder', 'warning');
         }
-        return;
-      }
+        break;
 
-      // Save campaign
-      if (matchesAny(command, ['save', 'save campaign', 'save changes'])) {
+      case 'SAVE_CAMPAIGN':
         if (router.pathname === '/' || router.pathname.includes('?id=')) {
           showFeedback('Please use the Save button in the builder', 'info');
         } else {
           showFeedback('This command only works in the campaign builder', 'warning');
         }
-        return;
-      }
+        break;
 
-      // Logout
-      if (matchesAny(command, ['logout', 'log out', 'sign out'])) {
+      case 'LOGOUT':
         showFeedback('Logging out...', 'success');
         router.push('/login');
-        return;
-      }
+        break;
 
-      // Help command
-      if (matchesAny(command, ['help', 'what can you do', 'commands', 'what commands'])) {
-        showFeedback('Try: create campaign, dashboard, responses, profile, add step, save, logout', 'info');
-        return;
-      }
+      case 'SHOW_HELP':
+        showFeedback('You can create campaigns, navigate, delete, duplicate campaigns, and more!', 'info');
+        break;
 
-      // Unknown command
-      console.log('[Jarvis] Unknown command:', command);
-      showFeedback('Sorry, I didn\'t understand that command. Say "help" for available commands.', 'warning');
-
-    } catch (error) {
-      console.error('Command execution error:', error);
-      showFeedback('Error executing command', 'error');
+      case 'UNKNOWN':
+      default:
+        // Feedback already shown from Gemini
+        break;
     }
   };
 
