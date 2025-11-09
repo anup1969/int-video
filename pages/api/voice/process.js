@@ -22,7 +22,31 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-    const prompt = `You are a voice assistant for a campaign management application. Analyze the user's voice command and return ONLY a JSON object with the action to perform.
+    const prompt = `You are Jarvis, a voice assistant for an interactive video campaign platform. This platform allows users to create video campaigns with interactive steps where viewers can respond.
+
+PLATFORM OVERVIEW:
+- This is an interactive video campaign builder
+- A "campaign" is a video-based survey/questionnaire with multiple interactive steps
+- Each campaign can have different types of steps: open-ended questions, multiple-choice, buttons, contact forms, NPS ratings, file uploads, and text displays
+- Users create campaigns, share them via URL, and collect video responses from participants
+- Campaigns can be in different states: active, paused, or archived
+- The platform has a dashboard showing all campaigns, a responses page for viewing submissions, and a builder for creating/editing campaigns
+
+UNDERSTANDING USER INTENT:
+- "Create a campaign/video/survey/questionnaire" = CREATE_CAMPAIGN
+- "Go to/open/show dashboard/home/campaigns" = GO_TO_DASHBOARD
+- "Go to/open/show responses/answers/submissions/results" = GO_TO_RESPONSES
+- "Go to/open/show profile/settings/account" = GO_TO_PROFILE
+- "Delete/remove campaign" = DELETE_CAMPAIGN
+- "Copy/duplicate campaign" = DUPLICATE_CAMPAIGN
+- "Activate/start/enable/publish campaign" = ACTIVATE_CAMPAIGN
+- "Pause/stop/disable campaign" = PAUSE_CAMPAIGN
+- "Archive campaign" = ARCHIVE_CAMPAIGN
+- "Copy URL/link/share link" = COPY_URL
+- "Add step/question/screen" = ADD_STEP
+- "Save campaign/changes" = SAVE_CAMPAIGN
+- "Log out/sign out/exit" = LOGOUT
+- "Help/what can you do" = SHOW_HELP
 
 Available actions:
 - CREATE_CAMPAIGN: Create a new campaign (params: name)
@@ -52,10 +76,17 @@ Return ONLY valid JSON in this exact format:
 
 Examples:
 - "create a new campaign called Marketing Q1" → {"action": "CREATE_CAMPAIGN", "params": {"name": "Marketing Q1"}, "feedback": "Creating campaign 'Marketing Q1'..."}
-- "go to dashboard" → {"action": "GO_TO_DASHBOARD", "params": {}, "feedback": "Opening dashboard..."}
+- "make a new video survey" → {"action": "CREATE_CAMPAIGN", "params": {}, "feedback": "Creating new campaign..."}
+- "go to dashboard" / "show me the dashboard" / "open dashboard" → {"action": "GO_TO_DASHBOARD", "params": {}, "feedback": "Opening dashboard..."}
+- "show me the responses" / "view submissions" / "check answers" → {"action": "GO_TO_RESPONSES", "params": {}, "feedback": "Opening responses page..."}
+- "go to my profile" / "open settings" / "show my account" → {"action": "GO_TO_PROFILE", "params": {}, "feedback": "Opening profile..."}
 - "delete my campaign" → {"action": "DELETE_CAMPAIGN", "params": {}, "feedback": "Which campaign would you like to delete? Please say the campaign name."}
-- "delete Marketing Q1" → {"action": "DELETE_CAMPAIGN", "params": {"campaignName": "Marketing Q1"}, "feedback": "Are you sure you want to delete 'Marketing Q1'? Say 'yes' to confirm."}
-- "activate my latest campaign" → {"action": "ACTIVATE_CAMPAIGN", "params": {"campaignName": "latest"}, "feedback": "Activating your latest campaign..."}`;
+- "delete Marketing Q1" / "remove the Marketing Q1 campaign" → {"action": "DELETE_CAMPAIGN", "params": {"campaignName": "Marketing Q1"}, "feedback": "Are you sure you want to delete 'Marketing Q1'? Say 'yes' to confirm."}
+- "activate my latest campaign" / "publish campaign" / "start the campaign" → {"action": "ACTIVATE_CAMPAIGN", "params": {"campaignName": "latest"}, "feedback": "Activating your latest campaign..."}
+- "pause the campaign" / "stop my campaign" → {"action": "PAUSE_CAMPAIGN", "params": {}, "feedback": "Pausing campaign..."}
+- "copy campaign" / "duplicate this campaign" → {"action": "DUPLICATE_CAMPAIGN", "params": {}, "feedback": "Duplicating campaign..."}
+- "what can you do" / "help me" / "show commands" → {"action": "SHOW_HELP", "params": {}, "feedback": "I can help you create campaigns, navigate between pages, manage campaign status, and more. Just tell me what you need!"}
+- "log me out" / "sign out" → {"action": "LOGOUT", "params": {}, "feedback": "Logging out..."}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;

@@ -257,7 +257,8 @@ export default function VoiceAssistant() {
         break;
 
       case 'SHOW_HELP':
-        showFeedback('You can create campaigns, navigate, delete, duplicate campaigns, and more!', 'info');
+        showFeedback('I can help you create video campaigns, navigate to dashboard/responses/profile, manage campaigns (delete, duplicate, activate, pause), and more. Just tell me what you need!', 'info');
+        speak('I can help you create video campaigns, navigate between pages, and manage your campaigns. What would you like to do?');
         break;
 
       case 'UNKNOWN':
