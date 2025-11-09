@@ -70,7 +70,6 @@ async function uploadFileInChunks(blob, fileName, fileType, onProgress) {
   throw new Error('Upload completed but no result was returned');
 }
 
-// Campaign Viewer Component - Updated with password protection for end-users
 export default function CampaignViewer() {
   const router = useRouter();
   const { id } = router.query;
@@ -95,12 +94,6 @@ export default function CampaignViewer() {
   const [showButtons, setShowButtons] = useState(false); // For delayed button display
   const [videoProgress, setVideoProgress] = useState(0); // Video progress percentage (0-100)
   const [errorMessage, setErrorMessage] = useState(null); // Copyable error modal
-
-  // Password Protection State - TEMPORARILY DISABLED FOR TESTING
-  // const [passwordRequired, setPasswordRequired] = useState(false);
-  // const [passwordEntered, setPasswordEntered] = useState('');
-  // const [passwordError, setPasswordError] = useState(false);
-  // const [campaignPassword, setCampaignPassword] = useState(null);
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -158,20 +151,6 @@ export default function CampaignViewer() {
 
         // Set campaign data first (so error messages work correctly)
         setCampaign(transformedData);
-
-        // Check if password is required - TEMPORARILY DISABLED FOR TESTING
-        // if (data.campaign.password) {
-        //   // Check session storage for password validation (only in browser)
-        //   const sessionKey = `viewer_${id}_password_validated`;
-        //   const isValidated = typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) === 'true';
-
-        //   if (!isValidated) {
-        //     setCampaignPassword(data.campaign.password);
-        //     setPasswordRequired(true);
-        //     setLoading(false);
-        //     return;
-        //   }
-        // }
 
         // Check campaign schedule
         const now = new Date();
@@ -269,27 +248,6 @@ export default function CampaignViewer() {
     };
   }, [campaign, loading, campaignEnded, currentStepIndex]);
 
-  // Password submit handler - TEMPORARILY DISABLED FOR TESTING
-  // const handlePasswordSubmit = (e) => {
-  //   e.preventDefault();
-
-  //   if (passwordEntered === campaignPassword) {
-  //     // Password correct - save to session storage and reload campaign
-  //     if (typeof window !== 'undefined') {
-  //       const sessionKey = `viewer_${id}_password_validated`;
-  //       sessionStorage.setItem(sessionKey, 'true');
-  //       setPasswordRequired(false);
-  //       setPasswordError(false);
-
-  //       // Reload the page to trigger campaign loading
-  //       window.location.reload();
-  //     }
-  //   } else {
-  //     // Password incorrect - show error
-  //     setPasswordError(true);
-  //   }
-  // };
-
   // Track video progress
   useEffect(() => {
     const video = videoRef.current;
@@ -347,67 +305,6 @@ export default function CampaignViewer() {
       }
     };
   }, [recordedVideoUrl]);
-
-  // If password is required, show password modal - TEMPORARILY DISABLED FOR TESTING
-  // if (passwordRequired) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-600">
-  //       <div className="max-w-md w-full mx-4 bg-white rounded-lg shadow-xl p-8">
-  //         <div className="text-center mb-6">
-  //           <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
-  //             <i className="fas fa-lock text-violet-600 text-3xl"></i>
-  //           </div>
-  //           <h2 className="text-2xl font-bold text-gray-900 mb-2">Protected Campaign</h2>
-  //           <p className="text-gray-600">
-  //             This campaign requires a password to view
-  //           </p>
-  //         </div>
-
-  //         <form onSubmit={handlePasswordSubmit} className="space-y-4">
-  //           <div>
-  //             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-  //               Enter Password
-  //             </label>
-  //             <input
-  //               id="password"
-  //               type="text"
-  //               value={passwordEntered}
-  //               onChange={(e) => {
-  //                 setPasswordEntered(e.target.value);
-  //                 setPasswordError(false);
-  //               }}
-  //               placeholder="Enter campaign password"
-  //               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent transition ${
-  //                 passwordError
-  //                   ? 'border-red-500 bg-red-50'
-  //                   : 'border-gray-300'
-  //               }`}
-  //               autoFocus
-  //             />
-  //             {passwordError && (
-  //               <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-  //                 <i className="fas fa-exclamation-circle"></i>
-  //                 Incorrect password. Please try again.
-  //               </p>
-  //             )}
-  //           </div>
-
-  //           <button
-  //             type="submit"
-  //             className="w-full px-6 py-3 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
-  //           >
-  //             <i className="fas fa-unlock mr-2"></i>
-  //             Access Campaign
-  //           </button>
-  //         </form>
-
-  //         <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-  //           Don't have the password? Contact the campaign owner.
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   if (loading) {
     return (
