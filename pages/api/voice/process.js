@@ -20,7 +20,8 @@ export default async function handler(req, res) {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    // Use gemini-1.5-flash for better performance and reliability
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are Jarvis, a voice assistant for an interactive video campaign platform. This platform allows users to create video campaigns with interactive steps where viewers can respond.
 
