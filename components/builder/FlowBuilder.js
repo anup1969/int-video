@@ -160,7 +160,7 @@ export default function FlowBuilder() {
                 position: step.data?.position || { x: 400, y: 200 },
                 stepNumber: step.step_number,
                 label: step.label,
-                answerType: step.answer_type,
+                answerType: step.answer_type || 'open-ended',
                 logicRules: step.data?.logicRules || [],
                 videoUrl: step.data?.videoUrl || null,
                 videoThumbnail: step.data?.videoThumbnail || null,
