@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 
-export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges, campaignId, onOpenSettings }) {
+export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges, campaignId, onOpenSettings, onTemplatesClick }) {
   const router = useRouter();
   const getSaveStatusDisplay = () => {
     switch (saveStatus) {
@@ -55,6 +55,15 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
         <div className="text-sm text-gray-600 mr-2">
           Zoom: {Math.round(scale * 100)}%
         </div>
+        {onTemplatesClick && (
+          <button
+            onClick={onTemplatesClick}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition"
+          >
+            <i className="fas fa-layer-group mr-2"></i>
+            Templates
+          </button>
+        )}
         <button
           onClick={onSave}
           disabled={saveStatus === 'saving'}

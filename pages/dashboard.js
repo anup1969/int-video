@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { generatePassword } from '../lib/utils/password';
 import Header from '../components/Header';
+import TemplatesModal from '../components/TemplatesModal';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [campaignToEdit, setCampaignToEdit] = useState(null);
   const [editPassword, setEditPassword] = useState(null);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
@@ -55,6 +57,31 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Failed to create campaign:', error);
+    }
+  };
+
+  const handleSelectTemplate = async (template) => {
+    try {
+      // Create a new campaign
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${template.name} - ${Date.now()}`,
+          status: 'draft'
+        })
+      });
+
+      if (response.ok) {
+        const { campaign } = await response.json();
+
+        // Load the template steps into the campaign
+        // Note: The template steps need to be converted to campaign nodes
+        // For now, we'll navigate to the editor and let the user see the template
+        router.push(`/?id=${campaign.id}&template=${template.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to create campaign from template:', error);
     }
   };
 
@@ -183,7 +210,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Campaign Dashboard" showNewCampaign={true} />
+      <Header
+        title="Campaign Dashboard"
+        showNewCampaign={true}
+        showTemplates={true}
+        onTemplatesClick={() => setShowTemplatesModal(true)}
+      />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -372,6 +404,13 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Templates Modal */}
+      <TemplatesModal
+        isOpen={showTemplatesModal}
+        onClose={() => setShowTemplatesModal(false)}
+        onSelectTemplate={handleSelectTemplate}
+      />
 
       {/* Campaign Settings Modal */}
       {showSettingsModal && (

@@ -14,6 +14,7 @@ import Header from './Header';
 import EditModal from './EditModal';
 import PreviewModal from './PreviewModal';
 import ZoomControls from './ZoomControls';
+import TemplatesModal from '../TemplatesModal';
 
 // Helper functions for IST timezone conversion
 const convertUTCtoIST = (utcDateString) => {
@@ -62,6 +63,7 @@ export default function FlowBuilder() {
   // UI State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
   // State management
   const [nodes, setNodes] = useState([
@@ -341,6 +343,63 @@ export default function FlowBuilder() {
     } catch (error) {
       console.error('Load error:', error);
       alert('Failed to load campaign');
+    }
+  };
+
+  // Handle Template Selection
+  const handleSelectTemplate = (template) => {
+    if (!template || !template.steps) return;
+
+    try {
+      // Convert template steps to nodes
+      const templateNodes = template.steps.map((step, index) => ({
+        id: uuidv4(),
+        type: 'video',
+        position: { x: 400 + (index % 3) * 300, y: 200 + Math.floor(index / 3) * 200 },
+        stepNumber: index + 1,
+        label: step.config?.question || step.config?.title || step.config?.message || `Step ${index + 1}`,
+        answerType: step.type,
+        logicRules: [],
+        videoUrl: null,
+        videoThumbnail: null,
+        videoPlaceholder: '🎬',
+        mcOptions: step.config?.options || [],
+        buttonOptions: step.config?.buttons || [],
+        buttonShowTime: 0,
+        enabledResponseTypes: { video: true, audio: true, text: true },
+        showContactForm: step.type === 'contact-form',
+        contactFormFields: step.config?.fields || defaultContactFormFields,
+      }));
+
+      // Add start node
+      const newNodes = [
+        {
+          id: 'start',
+          type: 'start',
+          position: { x: 100, y: 250 },
+          label: '▶️ Start Campaign',
+        },
+        ...templateNodes
+      ];
+
+      // Create linear connections (start → step1 → step2 → ... )
+      const newConnections = [];
+      for (let i = 0; i < newNodes.length - 1; i++) {
+        newConnections.push({
+          from: newNodes[i].id,
+          to: newNodes[i + 1].id,
+          type: 'default'
+        });
+      }
+
+      setNodes(newNodes);
+      setConnections(newConnections);
+      setHasUnsavedChanges(true);
+
+      console.log(`✅ Loaded template: ${template.name} with ${templateNodes.length} steps`);
+    } catch (error) {
+      console.error('Template load error:', error);
+      alert('Failed to load template');
     }
   };
 
@@ -888,6 +947,7 @@ export default function FlowBuilder() {
           hasUnsavedChanges={hasUnsavedChanges}
           campaignId={campaignId}
           onOpenSettings={() => setShowSettingsModal(true)}
+          onTemplatesClick={() => setShowTemplatesModal(true)}
         />
 
         <div
@@ -995,6 +1055,12 @@ export default function FlowBuilder() {
         updateContactFormField={updateContactFormField}
         removeContactFormField={removeContactFormField}
         updateLogicRule={updateLogicRule}
+      />
+
+      <TemplatesModal
+        isOpen={showTemplatesModal}
+        onClose={() => setShowTemplatesModal(false)}
+        onSelectTemplate={handleSelectTemplate}
       />
 
       <PreviewModal

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Header({ title = 'Campaign Dashboard', showNewCampaign = true }) {
+export default function Header({ title = 'Campaign Dashboard', showNewCampaign = true, showTemplates = false, onTemplatesClick = null }) {
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -66,6 +66,15 @@ export default function Header({ title = 'Campaign Dashboard', showNewCampaign =
 
           {/* Right: Actions & User Menu */}
           <div className="flex items-center gap-3">
+            {showTemplates && (
+              <button
+                onClick={onTemplatesClick}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition flex items-center gap-2"
+              >
+                <i className="fas fa-layer-group"></i>
+                Templates
+              </button>
+            )}
             {showNewCampaign && (
               <button
                 onClick={handleCreateCampaign}
