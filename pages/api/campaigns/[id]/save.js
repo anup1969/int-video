@@ -70,6 +70,7 @@ export default async function handler(req, res) {
         textContent: node.textContent || '',
         backgroundColor: node.backgroundColor || '',
         fontFamily: node.fontFamily || '',
+        backgroundMusic: node.backgroundMusic || { enabled: false, type: 'calm' },
       }
     }))
 
