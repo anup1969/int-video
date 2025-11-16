@@ -1,5 +1,5 @@
 import VideoUpload from "./VideoUpload";
-import { answerTypes } from '../../lib/utils/constants';
+import { answerTypes, backgroundMusicOptions } from '../../lib/utils/constants';
 
 export default function EditModal({
   show,
@@ -158,7 +158,7 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
       {/* Slide Type Selector */}
       <div className="bg-gray-50 p-4 rounded-lg">
         <label className="block text-sm font-semibold text-gray-700 mb-3">Content Type</label>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -181,7 +181,60 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
             />
             <span className="text-sm font-medium">Text Slide</span>
           </label>
+
+          {/* Music Button - Inline with Video/Text */}
+          <button
+            type="button"
+            onClick={() => setEditingStep({
+              ...editingStep,
+              backgroundMusic: {
+                ...editingStep.backgroundMusic,
+                enabled: !editingStep.backgroundMusic?.enabled,
+                type: editingStep.backgroundMusic?.type || 'calm'
+              }
+            })}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition font-medium text-sm ${
+              editingStep.backgroundMusic?.enabled
+                ? 'border-purple-500 bg-purple-100 text-purple-700'
+                : 'border-gray-300 bg-white text-gray-600 hover:border-purple-400'
+            }`}
+          >
+            <i className="fas fa-music"></i>
+            <span>Music {editingStep.backgroundMusic?.enabled ? 'ON' : 'OFF'}</span>
+          </button>
         </div>
+
+        {/* Music Type Selector - Shows when music is enabled */}
+        {editingStep.backgroundMusic?.enabled && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-xs text-gray-600 mb-2">
+              Select music type (plays when user records response):
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {backgroundMusicOptions.map((music) => (
+                <button
+                  key={music.id}
+                  type="button"
+                  onClick={() => setEditingStep({
+                    ...editingStep,
+                    backgroundMusic: {
+                      ...editingStep.backgroundMusic,
+                      type: music.id
+                    }
+                  })}
+                  className={`p-2 rounded-lg border-2 text-center transition ${
+                    editingStep.backgroundMusic?.type === music.id
+                      ? 'border-purple-500 bg-purple-100'
+                      : 'border-gray-200 hover:border-purple-300 bg-white'
+                  }`}
+                >
+                  <span className="text-lg block">{music.icon}</span>
+                  <span className="text-xs font-medium">{music.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Video Upload Section */}
