@@ -396,17 +396,17 @@ export default function CampaignViewer() {
   const startBackgroundMusic = () => {
     console.log("=== DEBUG: startBackgroundMusic called ===");
     console.log("currentNode:", currentNode);
-    console.log("backgroundMusic settings:", currentNode?.backgroundMusic);
-    if (!currentNode?.backgroundMusic?.enabled || currentNode?.backgroundMusic?.type === 'none') {
+    console.log("backgroundMusic settings:", currentStep?.backgroundMusic);
+    if (!currentStep?.backgroundMusic?.enabled || currentStep?.backgroundMusic?.type === 'none') {
       return;
     }
 
     let musicUrl = null;
-    const musicType = currentNode.backgroundMusic.type || 'calm';
+    const musicType = currentStep.backgroundMusic.type || 'calm';
 
     // Check for custom music first
-    if (musicType === 'custom' && currentNode.backgroundMusic.customUrl) {
-      musicUrl = currentNode.backgroundMusic.customUrl;
+    if (musicType === 'custom' && currentStep.backgroundMusic.customUrl) {
+      musicUrl = currentStep.backgroundMusic.customUrl;
     } else {
       const musicOption = backgroundMusicOptions.find(m => m.id === musicType);
       musicUrl = musicOption?.url;
