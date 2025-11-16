@@ -87,18 +87,6 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
           <i className="fas fa-cog mr-1"></i> Settings
         </button>
         <button
-          onClick={() => router.push("/tester")}
-          className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded font-medium transition"
-        >
-          <i className="fas fa-vial mr-1"></i> Tester
-        </button>
-        <button
-          onClick={() => router.push("/admin-reports")}
-          className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded font-medium transition"
-        >
-          <i className="fas fa-bug mr-1"></i> Reports
-        </button>
-        <button
           onClick={() => {
             if (campaignId) {
               const url = `${window.location.origin}/campaign/${campaignId}`;

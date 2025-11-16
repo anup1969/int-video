@@ -66,6 +66,20 @@ export default function Header({ title = 'Campaign Dashboard', showNewCampaign =
 
           {/* Right: Actions & User Menu */}
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/tester")}
+              className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded font-medium transition flex items-center gap-1"
+            >
+              <i className="fas fa-vial"></i>
+              Tester
+            </button>
+            <button
+              onClick={() => router.push("/admin-reports")}
+              className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded font-medium transition flex items-center gap-1"
+            >
+              <i className="fas fa-bug"></i>
+              Admin Reports
+            </button>
             {showTemplates && (
               <button
                 onClick={onTemplatesClick}
