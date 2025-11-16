@@ -4,5 +4,13 @@
       "maxDuration": 60,
       "memory": 1024
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/upload/file",
+      "headers": {
+        "x-vercel-bodyparser": "false"
+      }
+    }
+  ]
 }
