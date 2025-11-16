@@ -821,13 +821,6 @@ export default function CampaignViewer() {
   };
 
   return (
-    <div style={{position: 'fixed', top: 10, right: 10, background: 'black', color: 'lime', padding: 10, zIndex: 9999, fontSize: 12}}>
-      Music Debug:<br/>
-      Enabled: {String(currentStep?.data?.backgroundMusic?.enabled)}<br/>
-      Type: {currentStep?.data?.backgroundMusic?.type}<br/>
-      CustomURL: {currentStep?.data?.backgroundMusic?.customUrl ? 'Yes' : 'No'}<br/>
-      Playing: {String(isMusicPlaying)}
-    </div>
     <div
       className="fixed inset-0 w-full h-full overflow-hidden bg-black"
       onMouseMove={handleMouseMove}
