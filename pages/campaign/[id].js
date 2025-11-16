@@ -396,7 +396,7 @@ export default function CampaignViewer() {
   const startBackgroundMusic = () => {
     console.log("=== DEBUG: startBackgroundMusic called ===");
     console.log("currentNode:", currentNode);
-    console.log("backgroundMusic settings:", currentStep?.backgroundMusic);
+    console.log("backgroundMusic settings:", currentStep?.data?.backgroundMusic);
     if (!currentStep?.data?.backgroundMusic?.enabled || currentStep?.data?.backgroundMusic?.type === 'none') {
       return;
     }
@@ -835,6 +835,8 @@ export default function CampaignViewer() {
     >
       {/* Hidden audio element for background music */}
       <audio ref={musicAudioRef} className="hidden" preload="auto" />
+      {/* Music playing indicator */}
+      {isMusicPlaying && <div style={{position: "fixed", bottom: 20, right: 20, background: "rgba(139,92,246,0.9)", color: "white", padding: "8px 16px", borderRadius: 20, zIndex: 9999, fontSize: 14}}>🎵 Music Playing</div>}
       {/* Fullscreen Video or Text Background */}
       {currentStep.slideType === 'text' ? (
         <div
