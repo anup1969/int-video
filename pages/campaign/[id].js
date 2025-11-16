@@ -394,6 +394,9 @@ export default function CampaignViewer() {
 
   // Background music control functions
   const startBackgroundMusic = () => {
+    console.log("=== DEBUG: startBackgroundMusic called ===");
+    console.log("currentNode:", currentNode);
+    console.log("backgroundMusic settings:", currentNode?.backgroundMusic);
     if (!currentNode?.backgroundMusic?.enabled || currentNode?.backgroundMusic?.type === 'none') {
       return;
     }
