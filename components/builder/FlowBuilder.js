@@ -685,6 +685,7 @@ export default function FlowBuilder() {
               textContent: editingStep.textContent || '',
               backgroundColor: editingStep.backgroundColor || '',
               fontFamily: editingStep.fontFamily || '',
+              backgroundMusic: editingStep.backgroundMusic || { enabled: false, type: 'calm' },
             }
           : node
       )
