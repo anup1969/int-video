@@ -394,20 +394,19 @@ export default function CampaignViewer() {
 
   // Background music control functions
   const startBackgroundMusic = () => {
-    alert('Music: enabled=' + currentStep?.backgroundMusic?.enabled + ', type=' + currentStep?.backgroundMusic?.type + ', url=' + currentStep?.backgroundMusic?.customUrl);
     console.log("=== DEBUG: startBackgroundMusic called ===");
     console.log("currentNode:", currentNode);
     console.log("backgroundMusic settings:", currentStep?.backgroundMusic);
-    if (!currentStep?.backgroundMusic?.enabled || currentStep?.backgroundMusic?.type === 'none') {
+    if (!currentStep?.data?.backgroundMusic?.enabled || currentStep?.data?.backgroundMusic?.type === 'none') {
       return;
     }
 
     let musicUrl = null;
-    const musicType = currentStep.backgroundMusic.type || 'calm';
+    const musicType = currentStep.data.backgroundMusic.type || 'calm';
 
     // Check for custom music first
-    if (musicType === 'custom' && currentStep.backgroundMusic.customUrl) {
-      musicUrl = currentStep.backgroundMusic.customUrl;
+    if (musicType === 'custom' && currentStep.data.backgroundMusic.customUrl) {
+      musicUrl = currentStep.data.backgroundMusic.customUrl;
     } else {
       const musicOption = backgroundMusicOptions.find(m => m.id === musicType);
       musicUrl = musicOption?.url;
@@ -415,7 +414,7 @@ export default function CampaignViewer() {
     
     if (musicUrl && musicAudioRef.current) {
       musicAudioRef.current.src = musicUrl;
-      musicAudioRef.current.volume = 0.3; // Lower volume for background music
+      musicAudioRef.current.volume = 0.8; // Increase volume
       musicAudioRef.current.loop = true;
       musicAudioRef.current.play().then(() => {
         setIsMusicPlaying(true);
@@ -436,7 +435,6 @@ export default function CampaignViewer() {
   };
 
   const handleResponseClick = (type) => {
-    alert('Response clicked: ' + type);
     setShowResponseUI(type);
     // Start background music when user opens response UI
     if (type === "video" || type === "audio" || type === "text") {
