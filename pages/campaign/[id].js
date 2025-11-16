@@ -148,6 +148,7 @@ export default function CampaignViewer() {
             textContent: step.data?.textContent || '',
             backgroundColor: step.data?.backgroundColor || '',
             fontFamily: step.data?.fontFamily || '',
+            backgroundMusic: step.data?.backgroundMusic || { enabled: false, type: 'calm' },
           }))
         };
 
@@ -397,16 +398,24 @@ export default function CampaignViewer() {
       return;
     }
 
+    let musicUrl = null;
     const musicType = currentNode.backgroundMusic.type || 'calm';
-    const musicOption = backgroundMusicOptions.find(m => m.id === musicType);
+
+    // Check for custom music first
+    if (musicType === 'custom' && currentNode.backgroundMusic.customUrl) {
+      musicUrl = currentNode.backgroundMusic.customUrl;
+    } else {
+      const musicOption = backgroundMusicOptions.find(m => m.id === musicType);
+      musicUrl = musicOption?.url;
+    }
     
-    if (musicOption && musicOption.url && musicAudioRef.current) {
-      musicAudioRef.current.src = musicOption.url;
+    if (musicUrl && musicAudioRef.current) {
+      musicAudioRef.current.src = musicUrl;
       musicAudioRef.current.volume = 0.3; // Lower volume for background music
       musicAudioRef.current.loop = true;
       musicAudioRef.current.play().then(() => {
         setIsMusicPlaying(true);
-        console.log('Background music started:', musicType);
+        console.log('Background music started:', musicType, musicUrl);
       }).catch(err => {
         console.log('Could not start background music:', err);
       });

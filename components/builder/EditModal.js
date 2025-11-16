@@ -233,6 +233,14 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
                 </button>
               ))}
             </div>
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-xs text-gray-600 mb-2">Or upload your own music:</p>
+              <div className="flex items-center gap-2">
+                <input type="file" accept="audio/*" id="customMusicUpload" className="hidden" onChange={async (e) => { const file = e.target.files[0]; if (file) { const formData = new FormData(); formData.append("file", file); formData.append("type", "audio"); try { const response = await fetch("/api/upload/file", { method: "POST", body: formData }); const result = await response.json(); if (result.url) { setEditingStep({ ...editingStep, backgroundMusic: { ...editingStep.backgroundMusic, type: "custom", customUrl: result.url } }); } } catch (err) { alert("Failed to upload music"); } } }} />
+                <label htmlFor="customMusicUpload" className="flex-1 px-3 py-2 bg-white border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-purple-400 transition"><i className="fas fa-upload mr-2 text-gray-500"></i><span className="text-sm text-gray-600">{editingStep.backgroundMusic?.customUrl ? "Custom Uploaded" : "Upload MP3"}</span></label>
+                {editingStep.backgroundMusic?.customUrl && (<button type="button" onClick={() => setEditingStep({ ...editingStep, backgroundMusic: { ...editingStep.backgroundMusic, type: "custom" } })} className={`px-3 py-2 rounded-lg border-2 text-xs transition ${editingStep.backgroundMusic?.type === "custom" ? "border-purple-500 bg-purple-100 text-purple-700" : "border-gray-300 hover:border-purple-400"}`}>Use Custom</button>)}
+              </div>
+            </div>
           </div>
         )}
       </div>
