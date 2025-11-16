@@ -394,6 +394,7 @@ export default function CampaignViewer() {
 
   // Background music control functions
   const startBackgroundMusic = () => {
+    alert('Music check: enabled=' + currentStep?.backgroundMusic?.enabled + ', type=' + currentStep?.backgroundMusic?.type + ', customUrl=' + currentStep?.backgroundMusic?.customUrl);
     console.log("=== DEBUG: startBackgroundMusic called ===");
     console.log("currentNode:", currentNode);
     console.log("backgroundMusic settings:", currentStep?.backgroundMusic);
