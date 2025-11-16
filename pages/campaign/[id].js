@@ -436,6 +436,7 @@ export default function CampaignViewer() {
   };
 
   const handleResponseClick = (type) => {
+    alert('Response clicked: ' + type);
     setShowResponseUI(type);
     // Start background music when user opens response UI
     if (type === "video" || type === "audio" || type === "text") {
