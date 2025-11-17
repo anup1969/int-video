@@ -309,6 +309,41 @@ export default function CampaignViewer() {
     };
   }, [recordedVideoUrl]);
 
+  // Auto-play background music for TEXT slides
+  useEffect(() => {
+    if (!campaign || loading || campaignEnded) return;
+
+    const steps = campaign.nodes
+      ?.filter(n => n.type === 'video')
+      .sort((a, b) => a.stepNumber - b.stepNumber);
+
+    if (!steps || steps.length === 0 || currentStepIndex >= steps.length) return;
+
+    const step = steps[currentStepIndex];
+    if (step && step.slideType === 'text') {
+      console.log('TEXT slide detected, checking for music...');
+      if (step.backgroundMusic?.enabled && step.backgroundMusic?.customUrl) {
+        const musicUrl = step.backgroundMusic.customUrl;
+        console.log('Playing background music:', musicUrl);
+        if (musicAudioRef.current) {
+          musicAudioRef.current.src = musicUrl;
+          musicAudioRef.current.volume = 0.8;
+          musicAudioRef.current.loop = true;
+          musicAudioRef.current.play()
+            .then(() => setIsMusicPlaying(true))
+            .catch(err => console.log('Music autoplay error:', err));
+        }
+      }
+    }
+
+    return () => {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        setIsMusicPlaying(false);
+      }
+    };
+  }, [campaign, currentStepIndex, loading, campaignEnded]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -815,33 +850,6 @@ export default function CampaignViewer() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // Auto-play background music for TEXT slides
-  useEffect(() => {
-    if (!loading && steps && steps.length > 0 && currentStepIndex < steps.length) {
-      const step = steps[currentStepIndex];
-      if (step && step.slideType === 'text') {
-        console.log('TEXT slide detected');
-        if (step.data?.backgroundMusic?.enabled && step.data?.backgroundMusic?.customUrl) {
-          const musicUrl = step.data.backgroundMusic.customUrl;
-          if (musicAudioRef.current) {
-            musicAudioRef.current.src = musicUrl;
-            musicAudioRef.current.volume = 0.8;
-            musicAudioRef.current.loop = true;
-            musicAudioRef.current.play()
-              .then(() => setIsMusicPlaying(true))
-              .catch(err => console.log('Music error:', err));
-          }
-        }
-      }
-    }
-    return () => {
-      if (musicAudioRef.current) {
-        musicAudioRef.current.pause();
-        setIsMusicPlaying(false);
-      }
-    };
-  }, [currentStepIndex, loading, steps]);
 
   return (
     <div
