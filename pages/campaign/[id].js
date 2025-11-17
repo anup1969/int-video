@@ -1,7 +1,60 @@
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Component } from 'react';
 import { answerTypes, backgroundMusicOptions } from '../../lib/utils/constants';
 import packageInfo from '../../package.json';
+
+// Error Boundary to catch and display runtime errors
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    this.setState({ error, errorInfo });
+    console.error('Campaign Viewer Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+          <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl p-6">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h1 className="text-2xl font-bold text-red-600 mb-2">Application Error</h1>
+              <p className="text-gray-600">Something went wrong loading this campaign.</p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <h3 className="font-bold text-red-800 mb-2">Error Details:</h3>
+              <pre className="text-sm text-red-700 overflow-auto max-h-40 whitespace-pre-wrap">
+                {this.state.error && this.state.error.toString()}
+              </pre>
+            </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-bold text-gray-800 mb-2">Stack Trace:</h3>
+              <pre className="text-xs text-gray-600 overflow-auto max-h-60 whitespace-pre-wrap">
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
+              </pre>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 w-full px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Generate unique session ID
 const generateSessionId = () => {
@@ -70,7 +123,7 @@ async function uploadFileInChunks(blob, fileName, fileType, onProgress) {
   throw new Error('Upload completed but no result was returned');
 }
 
-export default function CampaignViewer() {
+function CampaignViewerContent() {
   const router = useRouter();
   const { id } = router.query;
 
@@ -313,35 +366,23 @@ export default function CampaignViewer() {
   useEffect(() => {
     if (!campaign || loading || campaignEnded) return;
 
-    const steps = campaign.nodes
+    const campaignSteps = campaign.nodes
       ?.filter(n => n.type === 'video')
       .sort((a, b) => a.stepNumber - b.stepNumber);
 
-    if (!steps || steps.length === 0 || currentStepIndex >= steps.length) return;
+    if (!campaignSteps || campaignSteps.length === 0 || currentStepIndex >= campaignSteps.length) return;
 
-    const step = steps[currentStepIndex];
-    if (step && step.slideType === 'text') {
-      console.log('TEXT slide detected, checking for music...');
-      if (step.backgroundMusic?.enabled && step.backgroundMusic?.customUrl) {
-        const musicUrl = step.backgroundMusic.customUrl;
-        console.log('Playing background music:', musicUrl);
-        if (musicAudioRef.current) {
-          musicAudioRef.current.src = musicUrl;
-          musicAudioRef.current.volume = 0.8;
-          musicAudioRef.current.loop = true;
-          musicAudioRef.current.play()
-            .then(() => setIsMusicPlaying(true))
-            .catch(err => console.log('Music autoplay error:', err));
-        }
+    const step = campaignSteps[currentStepIndex];
+    if (step && step.slideType === 'text' && step.backgroundMusic?.enabled && step.backgroundMusic?.customUrl) {
+      const musicUrl = step.backgroundMusic.customUrl;
+      console.log('Playing background music for TEXT slide:', musicUrl);
+      if (musicAudioRef.current) {
+        musicAudioRef.current.src = musicUrl;
+        musicAudioRef.current.volume = 0.8;
+        musicAudioRef.current.loop = true;
+        musicAudioRef.current.play().catch(err => console.log('Music autoplay blocked:', err));
       }
     }
-
-    return () => {
-      if (musicAudioRef.current) {
-        musicAudioRef.current.pause();
-        setIsMusicPlaying(false);
-      }
-    };
   }, [campaign, currentStepIndex, loading, campaignEnded]);
 
   if (loading) {
@@ -1450,5 +1491,14 @@ export default function CampaignViewer() {
         </div>
       )}
     </div>
+  );
+}
+
+// Wrap with error boundary
+export default function CampaignViewer() {
+  return (
+    <ErrorBoundary>
+      <CampaignViewerContent />
+    </ErrorBoundary>
   );
 }
