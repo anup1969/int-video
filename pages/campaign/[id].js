@@ -434,6 +434,17 @@ export default function CampaignViewer() {
     }
   };
 
+  // Auto-play background music for TEXT slides
+  useEffect(() => {
+    if (!loading && currentStep && currentStep.slideType === 'text') {
+      console.log('TEXT slide detected, music settings:', currentStep.data?.backgroundMusic);
+      startBackgroundMusic();
+    }
+    return () => {
+      stopBackgroundMusic();
+    };
+  }, [currentStepIndex, loading]);
+
   const handleResponseClick = (type) => {
     setShowResponseUI(type);
   };
