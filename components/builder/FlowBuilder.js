@@ -609,6 +609,11 @@ export default function FlowBuilder() {
         enabledResponseTypes: node.enabledResponseTypes || { video: true, audio: true, text: true },
         showContactForm: node.showContactForm || false,
         contactFormFields: node.contactFormFields || defaultContactFormFields,
+        slideType: node.slideType || 'video',
+        textContent: node.textContent || '',
+        backgroundColor: node.backgroundColor || '',
+        fontFamily: node.fontFamily || '',
+        backgroundMusic: node.backgroundMusic || { enabled: false, type: 'calm' },
       });
       setShowEditModal(true);
       setSelectedNode(nodeId);
@@ -708,7 +713,6 @@ export default function FlowBuilder() {
 
     setConnections([...otherConnections, ...newLogicConnections]);
     setShowEditModal(false);
-    alert('Step saved! Music URL: ' + (editingStep.backgroundMusic?.customUrl || 'None'));
   };
 
   const handleAddStep = () => {
