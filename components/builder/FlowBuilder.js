@@ -708,6 +708,7 @@ export default function FlowBuilder() {
 
     setConnections([...otherConnections, ...newLogicConnections]);
     setShowEditModal(false);
+    alert('Step saved! Music URL: ' + (editingStep.backgroundMusic?.customUrl || 'None'));
   };
 
   const handleAddStep = () => {
