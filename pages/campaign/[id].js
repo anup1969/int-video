@@ -362,28 +362,8 @@ function CampaignViewerContent() {
     };
   }, [recordedVideoUrl]);
 
-  // Auto-play background music for TEXT slides
-  useEffect(() => {
-    if (!campaign || loading || campaignEnded) return;
-
-    const campaignSteps = campaign.nodes
-      ?.filter(n => n.type === 'video')
-      .sort((a, b) => a.stepNumber - b.stepNumber);
-
-    if (!campaignSteps || campaignSteps.length === 0 || currentStepIndex >= campaignSteps.length) return;
-
-    const step = campaignSteps[currentStepIndex];
-    if (step && step.slideType === 'text' && step.backgroundMusic?.enabled && step.backgroundMusic?.customUrl) {
-      const musicUrl = step.backgroundMusic.customUrl;
-      console.log('Playing background music for TEXT slide:', musicUrl);
-      if (musicAudioRef.current) {
-        musicAudioRef.current.src = musicUrl;
-        musicAudioRef.current.volume = 0.8;
-        musicAudioRef.current.loop = true;
-        musicAudioRef.current.play().catch(err => console.log('Music autoplay blocked:', err));
-      }
-    }
-  }, [campaign, currentStepIndex, loading, campaignEnded]);
+  // Background music for TEXT slides is handled via startBackgroundMusic() function call
+  // when text slide is rendered (see the JSX below)
 
   if (loading) {
     return (
@@ -907,6 +887,18 @@ function CampaignViewerContent() {
         <div
           className="absolute inset-0 w-full h-full flex items-center justify-center p-6 sm:p-8 md:p-12 lg:p-16"
           style={{ background: currentStep.backgroundColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+          ref={(el) => {
+            // Auto-play background music when text slide is mounted
+            if (el && currentStep.backgroundMusic?.enabled && currentStep.backgroundMusic?.customUrl) {
+              const musicUrl = currentStep.backgroundMusic.customUrl;
+              if (musicAudioRef.current && musicAudioRef.current.src !== musicUrl) {
+                musicAudioRef.current.src = musicUrl;
+                musicAudioRef.current.volume = 0.8;
+                musicAudioRef.current.loop = true;
+                musicAudioRef.current.play().catch(err => console.log('Music autoplay blocked:', err));
+              }
+            }
+          }}
         >
           <p
             className="text-white text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold break-words max-w-4xl leading-tight"
