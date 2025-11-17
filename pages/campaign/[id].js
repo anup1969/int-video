@@ -818,17 +818,20 @@ export default function CampaignViewer() {
 
   // Auto-play background music for TEXT slides
   useEffect(() => {
-    if (!loading && currentStep && currentStep.slideType === 'text') {
-      console.log('TEXT slide detected');
-      if (currentStep.data?.backgroundMusic?.enabled && currentStep.data?.backgroundMusic?.customUrl) {
-        const musicUrl = currentStep.data.backgroundMusic.customUrl;
-        if (musicAudioRef.current) {
-          musicAudioRef.current.src = musicUrl;
-          musicAudioRef.current.volume = 0.8;
-          musicAudioRef.current.loop = true;
-          musicAudioRef.current.play()
-            .then(() => setIsMusicPlaying(true))
-            .catch(err => console.log('Music error:', err));
+    if (!loading && steps && steps.length > 0 && currentStepIndex < steps.length) {
+      const step = steps[currentStepIndex];
+      if (step && step.slideType === 'text') {
+        console.log('TEXT slide detected');
+        if (step.data?.backgroundMusic?.enabled && step.data?.backgroundMusic?.customUrl) {
+          const musicUrl = step.data.backgroundMusic.customUrl;
+          if (musicAudioRef.current) {
+            musicAudioRef.current.src = musicUrl;
+            musicAudioRef.current.volume = 0.8;
+            musicAudioRef.current.loop = true;
+            musicAudioRef.current.play()
+              .then(() => setIsMusicPlaying(true))
+              .catch(err => console.log('Music error:', err));
+          }
         }
       }
     }
@@ -838,7 +841,7 @@ export default function CampaignViewer() {
         setIsMusicPlaying(false);
       }
     };
-  }, [currentStepIndex, loading, currentStep]);
+  }, [currentStepIndex, loading, steps]);
 
   return (
     <div
