@@ -235,6 +235,7 @@ export default function FlowBuilder() {
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
       console.error('Save error:', error);
+      alert(`Save Failed: ${error.message}\n\nCheck console for details.`);
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
