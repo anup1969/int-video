@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { answerTypes, backgroundMusicOptions } from '../../lib/utils/constants';
+import { answerTypes } from '../../lib/utils/constants';
 import packageInfo from '../../package.json';
 
 // Generate unique session ID
@@ -94,7 +94,6 @@ export default function CampaignViewer() {
   const [showButtons, setShowButtons] = useState(false); // For delayed button display
   const [videoProgress, setVideoProgress] = useState(0); // Video progress percentage (0-100)
   const [errorMessage, setErrorMessage] = useState(null); // Copyable error modal
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false); // Background music state
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -111,7 +110,6 @@ export default function CampaignViewer() {
   const videoRef = useRef(null);
   const hideButtonTimeout = useRef(null);
   const buttonDelayTimeout = useRef(null);
-  const musicAudioRef = useRef(null); // Background music audio element
 
   useEffect(() => {
     if (!id) return;
@@ -381,7 +379,6 @@ export default function CampaignViewer() {
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);
       setShowResponseUI(null);
-      stopBackgroundMusic(); // Stop music when moving to next step
       setTextResponse('');
       setFormData({});
       setSelectedOption(null);
@@ -390,44 +387,8 @@ export default function CampaignViewer() {
     }
   };
 
-
-  // Background music control functions
-  const startBackgroundMusic = () => {
-    if (!currentNode?.backgroundMusic?.enabled || currentNode?.backgroundMusic?.type === 'none') {
-      return;
-    }
-
-    const musicType = currentNode.backgroundMusic.type || 'calm';
-    const musicOption = backgroundMusicOptions.find(m => m.id === musicType);
-    
-    if (musicOption && musicOption.url && musicAudioRef.current) {
-      musicAudioRef.current.src = musicOption.url;
-      musicAudioRef.current.volume = 0.3; // Lower volume for background music
-      musicAudioRef.current.loop = true;
-      musicAudioRef.current.play().then(() => {
-        setIsMusicPlaying(true);
-        console.log('Background music started:', musicType);
-      }).catch(err => {
-        console.log('Could not start background music:', err);
-      });
-    }
-  };
-
-  const stopBackgroundMusic = () => {
-    if (musicAudioRef.current) {
-      musicAudioRef.current.pause();
-      musicAudioRef.current.currentTime = 0;
-      setIsMusicPlaying(false);
-      console.log('Background music stopped');
-    }
-  };
-
   const handleResponseClick = (type) => {
     setShowResponseUI(type);
-    // Start background music when user opens response UI
-    if (type === "video" || type === "audio" || type === "text") {
-      startBackgroundMusic();
-    }
   };
 
   // Save response to API
@@ -630,7 +591,6 @@ export default function CampaignViewer() {
           if (targetStepIndex !== -1) {
             setCurrentStepIndex(targetStepIndex);
             setShowResponseUI(null);
-            stopBackgroundMusic(); // Stop music after submitting response
             discardRecording(); // Clear recording when moving to next step
             setTextResponse('');
             setFormData({});
@@ -662,7 +622,6 @@ export default function CampaignViewer() {
   const handleCancelResponse = () => {
     setShowResponseUI(null);
     setTextResponse("");
-    stopBackgroundMusic(); // Stop music when cancelling
   };
 
   const handleUnmute = () => {
@@ -814,8 +773,6 @@ export default function CampaignViewer() {
       onMouseMove={handleMouseMove}
       style={{ height: '100vh', height: '100dvh' }}
     >
-      {/* Hidden audio element for background music */}
-      <audio ref={musicAudioRef} className="hidden" preload="auto" />
       {/* Fullscreen Video or Text Background */}
       {currentStep.slideType === 'text' ? (
         <div
