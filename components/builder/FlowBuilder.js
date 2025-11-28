@@ -370,6 +370,10 @@ export default function FlowBuilder() {
         enabledResponseTypes: { video: true, audio: true, text: true },
         showContactForm: step.type === 'contact-form',
         contactFormFields: step.config?.fields || defaultContactFormFields,
+        slideType: 'video',
+        textContent: '',
+        backgroundColor: '',
+        fontFamily: '',
       }));
 
       // Add start node
