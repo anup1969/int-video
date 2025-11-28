@@ -609,6 +609,10 @@ export default function FlowBuilder() {
         enabledResponseTypes: node.enabledResponseTypes || { video: true, audio: true, text: true },
         showContactForm: node.showContactForm || false,
         contactFormFields: node.contactFormFields || defaultContactFormFields,
+        slideType: node.slideType || 'video',
+        textContent: node.textContent || '',
+        backgroundColor: node.backgroundColor || '',
+        fontFamily: node.fontFamily || '',
       });
       setShowEditModal(true);
       setSelectedNode(nodeId);
