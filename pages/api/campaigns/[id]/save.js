@@ -95,8 +95,13 @@ export default async function handler(req, res) {
     // 4. Insert connections using mapped database IDs
     const connectionsData = connections
       .filter(conn => {
+        // Skip connections from 'start' node (can't be saved to database)
+        if (conn.from === 'start') {
+          return false;
+        }
+
         // Only include connections where both nodes exist
-        const fromExists = conn.from === 'start' || idMapping[conn.from];
+        const fromExists = idMapping[conn.from];
         const toExists = idMapping[conn.to];
 
         if (!fromExists || !toExists) {
@@ -107,7 +112,7 @@ export default async function handler(req, res) {
       })
       .map(conn => ({
         campaign_id: id,
-        from_step: conn.from === 'start' ? null : idMapping[conn.from],
+        from_step: idMapping[conn.from],
         to_step: idMapping[conn.to],
         connection_type: conn.type || 'logic',
       }))
