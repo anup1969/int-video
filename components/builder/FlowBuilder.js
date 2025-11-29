@@ -935,7 +935,7 @@ export default function FlowBuilder() {
 
   return (
     <>
-    <div className="flex h-screen bg-blue-100">
+    <div className="flex h-screen bg-gray-50">
       <Sidebar
         onAddStep={handleAddStep}
         onPreview={() => {
@@ -1208,7 +1208,7 @@ export default function FlowBuilder() {
                     <button
                       type="button"
                       onClick={() => setPassword(generatePassword())}
-                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition"
+                      className="px-4 py-2 bg-gray-50 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition"
                     >
                       <i className="fas fa-sync-alt mr-2"></i>
                       Generate New
@@ -1216,7 +1216,7 @@ export default function FlowBuilder() {
                   )}
                 </div>
                 {password && (
-                  <div className="bg-blue-100 border border-gray-200 rounded-lg p-4">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-sm font-medium text-gray-700">
                         Campaign Password:

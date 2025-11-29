@@ -209,7 +209,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-blue-100">
       <Header
         title="Campaign Dashboard"
         showNewCampaign={true}
