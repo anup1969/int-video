@@ -331,8 +331,8 @@ export default function FlowBuilder() {
 
       // Convert connections
       const formattedConnections = loadedConnections.map(conn => ({
-        from: conn.from_step_id,
-        to: conn.to_step_id,
+        from: conn.from_step,
+        to: conn.to_step,
         type: conn.connection_type
       }));
 

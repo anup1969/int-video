@@ -112,8 +112,8 @@ export default async function handler(req, res) {
       })
       .map(conn => ({
         campaign_id: id,
-        from_step_id: idMapping[conn.from],
-        to_step_id: idMapping[conn.to],
+        from_step: idMapping[conn.from],
+        to_step: idMapping[conn.to],
         connection_type: conn.type || 'logic',
       }))
 
