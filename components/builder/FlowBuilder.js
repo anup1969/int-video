@@ -935,7 +935,7 @@ export default function FlowBuilder() {
 
   return (
     <>
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-blue-100">
       <Sidebar
         onAddStep={handleAddStep}
         onPreview={() => {
@@ -1216,7 +1216,7 @@ export default function FlowBuilder() {
                   )}
                 </div>
                 {password && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="bg-blue-100 border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-sm font-medium text-gray-700">
                         Campaign Password:
