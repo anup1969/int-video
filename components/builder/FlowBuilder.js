@@ -14,6 +14,7 @@ import Header from './Header';
 import EditModal from './EditModal';
 import PreviewModal from './PreviewModal';
 import ZoomControls from './ZoomControls';
+import { supabase } from '../../lib/supabase';
 import TemplatesModal from '../TemplatesModal';
 
 // Helper functions for IST timezone conversion
@@ -64,6 +65,8 @@ export default function FlowBuilder() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [suggestedName, setSuggestedName] = useState('');
 
   // State management
   const [nodes, setNodes] = useState([
@@ -203,6 +206,34 @@ export default function FlowBuilder() {
   // Save Campaign Function
   const saveCampaign = async () => {
     try {
+      // Check if campaign name is "Untitled Campaign" (case-insensitive)
+      const isUntitled = campaignName.trim().toLowerCase() === 'untitled campaign';
+      
+      if (isUntitled && !showRenameDialog) {
+        // First, get a suggested name from the API
+        const { data: allCampaigns } = await supabase
+          .from('campaigns')
+          .select('name')
+          .order('created_at', { ascending: false});
+
+        // Find highest "Campaign N" number
+        let highestNum = 0;
+        if (allCampaigns) {
+          allCampaigns.forEach(camp => {
+            const match = camp.name.match(/^Campaign (d+)$/i);
+            if (match) {
+              const num = parseInt(match[1]);
+              if (num > highestNum) highestNum = num;
+            }
+          });
+        }
+
+        // Set suggested name
+        setSuggestedName('Campaign ' + (highestNum + 1));
+        setShowRenameDialog(true);
+        return; // Don't save yet, wait for user action
+      }
+
       setSaveStatus('saving');
 
       // If no campaign ID, create new campaign first
@@ -235,7 +266,16 @@ export default function FlowBuilder() {
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
       console.error('Save error:', error);
-      alert(`Save Failed: ${error.message}\n\nCheck console for details.`);
+      
+      // Check if it's a duplicate name error
+      if (error.message && error.message.includes('already exists')) {
+        alert(error.message);
+      } else {
+        alert(`Save Failed: ${error.message}
+
+Check console for details.`);
+      }
+      
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
@@ -1264,6 +1304,67 @@ export default function FlowBuilder() {
                 className="px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
               >
                 Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Dialog Modal */}
+      {showRenameDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <i className="fas fa-exclamation-triangle text-orange-600 text-xl"></i>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Campaign Not Named</h3>
+                <p className="text-sm text-gray-600">Give your campaign a unique name</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 mb-4">
+                You haven't named your campaign yet. It will be saved with this default name:
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="font-semibold text-blue-900">{suggestedName}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setShowRenameDialog(false);
+                  // Focus on the name input in header after dialog closes
+                  setTimeout(() => {
+                    const nameInput = document.querySelector('input[type="text"]');
+                    if (nameInput) nameInput.focus();
+                  }, 100);
+                }}
+                className="w-full px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
+              >
+                <i className="fas fa-edit mr-2"></i>
+                Rename Now
+              </button>
+              <button
+                onClick={() => {
+                  setCampaignName(suggestedName);
+                  setShowRenameDialog(false);
+                  // Trigger save after setting the name
+                  setTimeout(() => saveCampaign(), 100);
+                }}
+                className="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition"
+              >
+                <i className="fas fa-check mr-2"></i>
+                Save with Default Name
+              </button>
+              <button
+                onClick={() => setShowRenameDialog(false)}
+                className="w-full px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition"
+              >
+                Cancel
               </button>
             </div>
           </div>
