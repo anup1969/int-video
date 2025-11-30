@@ -1068,18 +1068,6 @@ Check console for details.`);
             onZoomOut={handleZoomOut}
             onZoomReset={handleZoomReset}
           />
-
-          <div className="absolute bottom-6 left-6 bg-white rounded-lg shadow-lg p-4 max-w-xs">
-            <div className="text-sm text-gray-700">
-              <div className="font-semibold mb-2">💡 v4 Enhanced:</div>
-              <ul className="text-xs space-y-1 text-gray-600">
-                <li>• Click node titles to rename</li>
-                <li>• Contact Form node added</li>
-                <li>• Dynamic logic based on settings</li>
-                <li>• Mobile/Desktop preview toggle</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
 

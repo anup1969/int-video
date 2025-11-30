@@ -39,10 +39,10 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.push('/dashboard')}
-          className="p-2 hover:bg-gray-100 rounded transition"
-          title="Back to Dashboard"
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition flex items-center gap-2"
         >
           <i className="fas fa-arrow-left text-gray-600"></i>
+          <span className="text-gray-700">Back to Dashboard</span>
         </button>
         <input
           type="text"
