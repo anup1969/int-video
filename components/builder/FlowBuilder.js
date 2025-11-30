@@ -1325,40 +1325,56 @@ Check console for details.`);
             </div>
 
             <div className="mb-6">
-              <p className="text-gray-700 mb-4">
-                You haven't named your campaign yet. It will be saved with this default name:
+              <p className="text-gray-700 mb-3">
+                You haven't named your campaign yet. Please enter a name below:
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="font-semibold text-blue-900">{suggestedName}</p>
-              </div>
+              <input
+                type="text"
+                value={suggestedName}
+                onChange={(e) => setSuggestedName(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-medium"
+                placeholder="Enter campaign name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    // Validate before saving
+                    const trimmed = suggestedName.trim();
+                    if (!trimmed) {
+                      alert('Campaign name cannot be empty.');
+                      return;
+                    }
+                    setCampaignName(trimmed);
+                    setShowRenameDialog(false);
+                    setTimeout(() => saveCampaign(), 100);
+                  } else if (e.key === 'Escape') {
+                    setShowRenameDialog(false);
+                  }
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                <i className="fas fa-info-circle mr-1"></i>
+                Press Enter to save, Escape to cancel
+              </p>
             </div>
 
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => {
-                  setShowRenameDialog(false);
-                  // Focus on the name input in header after dialog closes
-                  setTimeout(() => {
-                    const nameInput = document.querySelector('input[type="text"]');
-                    if (nameInput) nameInput.focus();
-                  }, 100);
-                }}
-                className="w-full px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
-              >
-                <i className="fas fa-edit mr-2"></i>
-                Rename Now
-              </button>
-              <button
-                onClick={() => {
-                  setCampaignName(suggestedName);
+                  // Validate before saving
+                  const trimmed = suggestedName.trim();
+                  if (!trimmed) {
+                    alert('Campaign name cannot be empty.');
+                    return;
+                  }
+                  setCampaignName(trimmed);
                   setShowRenameDialog(false);
                   // Trigger save after setting the name
                   setTimeout(() => saveCampaign(), 100);
                 }}
-                className="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition"
+                className="w-full px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition"
               >
-                <i className="fas fa-check mr-2"></i>
-                Save with Default Name
+                <i className="fas fa-save mr-2"></i>
+                Save
               </button>
               <button
                 onClick={() => setShowRenameDialog(false)}
