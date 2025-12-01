@@ -10,6 +10,15 @@ export default function VoiceAssistant() {
   const recognitionRef = useRef(null);
   const wakeWordDetected = useRef(false);
 
+  // Don't render on end-user facing pages
+  const isEndUserPage = router.pathname.startsWith('/campaign/') ||
+                        router.pathname.startsWith('/viewer/') ||
+                        router.pathname === '/[shortUrl]';
+
+  if (isEndUserPage) {
+    return null;
+  }
+
   // Initialize speech recognition and auto-start
   useEffect(() => {
     if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
