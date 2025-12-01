@@ -696,7 +696,7 @@ export default function TesterDashboard() {
               alert('No versions available to report against');
             }
           }}
-          className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 z-50"
+          className="fixed bottom-28 right-8 bg-orange-500 hover:bg-orange-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 z-50"
           title="Report Bug or Suggestion"
         >
           <i className="fas fa-plus text-xl"></i>
