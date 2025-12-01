@@ -10,12 +10,15 @@ export default function VoiceAssistant() {
   const recognitionRef = useRef(null);
   const wakeWordDetected = useRef(false);
 
-  // Don't render on end-user facing pages
+  // Don't render on end-user facing pages or QA/testing pages
   const isEndUserPage = router.pathname.startsWith('/campaign/') ||
                         router.pathname.startsWith('/viewer/') ||
                         router.pathname === '/[shortUrl]';
 
-  if (isEndUserPage) {
+  const isTestingPage = router.pathname === '/tester' ||
+                        router.pathname === '/admin-reports';
+
+  if (isEndUserPage || isTestingPage) {
     return null;
   }
 
