@@ -195,22 +195,36 @@
   fetch(`${apiUrl}/api/campaigns/${campaignId}`)
     .then(res => res.json())
     .then(data => {
-      const campaign = data.campaign;
-      const firstStep = campaign.steps && campaign.steps.length > 0 ? campaign.steps[0] : null;
+      console.log('IntVideoWidget: Campaign data loaded', data);
+
+      const steps = data.steps || [];
+      const firstStep = steps.length > 0 ? steps[0] : null;
+
+      console.log('IntVideoWidget: First step', firstStep);
 
       if (firstStep && firstStep.video_url) {
+        console.log('IntVideoWidget: Loading video from', firstStep.video_url);
         video.src = firstStep.video_url;
         video.addEventListener('loadeddata', () => {
+          console.log('IntVideoWidget: Video loaded, starting playback');
           video.play().catch(err => console.log('Autoplay prevented:', err));
 
           // Stop after 5 seconds
           setTimeout(() => {
             video.pause();
             video.currentTime = 0;
+            console.log('IntVideoWidget: Stopped after 5 seconds');
           }, 5000);
+        });
+
+        video.addEventListener('error', (e) => {
+          console.error('IntVideoWidget: Video failed to load', e);
+          circle.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+          circle.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;">▶</div>';
         });
       } else {
         // Fallback: show placeholder
+        console.log('IntVideoWidget: No video found, showing placeholder');
         circle.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         circle.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;">▶</div>';
       }
