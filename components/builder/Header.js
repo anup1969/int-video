@@ -168,7 +168,7 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
                   <p className="text-sm text-gray-600 mb-3">Add a floating video widget to your website</p>
 
                   {/* Greeting Message Input */}
-                  <div className="mb-3">
+                  <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Greeting Message
                     </label>
@@ -181,9 +181,13 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
                     />
                   </div>
 
-                  <button
-                    onClick={() => {
-                      const embedCode = `<!-- Int-Video Widget -->
+                  {/* HTML Section */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-semibold text-gray-700">HTML</label>
+                      <button
+                        onClick={() => {
+                          const htmlCode = `<!-- Int-Video Widget -->
 <script>
   (function() {
     window.IntVideoWidget = {
@@ -197,14 +201,103 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
     document.body.appendChild(script);
   })();
 </script>`;
-                      navigator.clipboard.writeText(embedCode);
-                      alert('Embed code copied to clipboard!\n\nPaste it before the </body> tag on your website.');
-                    }}
-                    className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition flex items-center gap-2"
-                  >
-                    <i className="fas fa-clipboard"></i>
-                    Copy Embed Code
-                  </button>
+                          navigator.clipboard.writeText(htmlCode);
+                          alert('HTML code copied to clipboard!\n\nPaste it before the </body> tag on your website.');
+                        }}
+                        className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded hover:bg-violet-200 transition flex items-center gap-1"
+                      >
+                        <i className="fas fa-copy"></i>
+                        Copy
+                      </button>
+                    </div>
+                    <pre className="bg-gray-50 border border-gray-300 rounded p-3 text-xs overflow-x-auto">
+                      <code className="text-gray-800">{`<!-- Int-Video Widget -->
+<script>
+  (function() {
+    window.IntVideoWidget = {
+      campaignId: '${campaignId}',
+      greeting: '${embedGreeting}',
+      apiUrl: '${window.location.origin}'
+    };
+    var script = document.createElement('script');
+    script.src = '${window.location.origin}/embed/widget.js';
+    script.async = true;
+    document.body.appendChild(script);
+  })();
+</script>`}</code>
+                    </pre>
+                  </div>
+
+                  {/* CSS Section */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-semibold text-gray-700">CSS</label>
+                      <button
+                        onClick={() => {
+                          const cssCode = `/* No additional CSS required - styles are included in widget.js */`;
+                          navigator.clipboard.writeText(cssCode);
+                          alert('CSS code copied to clipboard!');
+                        }}
+                        className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded hover:bg-violet-200 transition flex items-center gap-1"
+                      >
+                        <i className="fas fa-copy"></i>
+                        Copy
+                      </button>
+                    </div>
+                    <pre className="bg-gray-50 border border-gray-300 rounded p-3 text-xs overflow-x-auto">
+                      <code className="text-gray-600 italic">{`/* No additional CSS required - styles are included in widget.js */`}</code>
+                    </pre>
+                  </div>
+
+                  {/* JavaScript Section */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-semibold text-gray-700">JavaScript</label>
+                      <button
+                        onClick={() => {
+                          const jsCode = `// Configuration
+window.IntVideoWidget = {
+  campaignId: '${campaignId}',
+  greeting: '${embedGreeting.replace(/'/g, "\\'")}',
+  apiUrl: '${window.location.origin}'
+};
+
+// Load widget script
+var script = document.createElement('script');
+script.src = '${window.location.origin}/embed/widget.js';
+script.async = true;
+document.body.appendChild(script);`;
+                          navigator.clipboard.writeText(jsCode);
+                          alert('JavaScript code copied to clipboard!');
+                        }}
+                        className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded hover:bg-violet-200 transition flex items-center gap-1"
+                      >
+                        <i className="fas fa-copy"></i>
+                        Copy
+                      </button>
+                    </div>
+                    <pre className="bg-gray-50 border border-gray-300 rounded p-3 text-xs overflow-x-auto">
+                      <code className="text-gray-800">{`// Configuration
+window.IntVideoWidget = {
+  campaignId: '${campaignId}',
+  greeting: '${embedGreeting}',
+  apiUrl: '${window.location.origin}'
+};
+
+// Load widget script
+var script = document.createElement('script');
+script.src = '${window.location.origin}/embed/widget.js';
+script.async = true;
+document.body.appendChild(script);`}</code>
+                    </pre>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                    <p className="text-xs text-blue-800">
+                      <i className="fas fa-info-circle mr-1"></i>
+                      <strong>Usage:</strong> Copy the HTML code and paste it before the closing <code>&lt;/body&gt;</code> tag on your website.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

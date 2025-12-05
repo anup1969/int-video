@@ -11,6 +11,65 @@ export default function Dashboard() {
   useEffect(() => {
     console.log('Dashboard version: 3.0 - Response count fixed + Delete button with debug logging');
   }, []);
+
+  // TEST: Load embeddable widget with first campaign
+  useEffect(() => {
+    if (campaigns.length > 0) {
+      const firstCampaign = campaigns[0];
+
+      console.log('=== WIDGET TEST DEBUG ===');
+      console.log('First campaign:', firstCampaign);
+      console.log('Campaign ID:', firstCampaign.id);
+      console.log('Campaign name:', firstCampaign.name);
+
+      // Configure widget
+      window.IntVideoWidget = {
+        campaignId: firstCampaign.id,
+        greeting: 'Testing the widget!',
+        apiUrl: window.location.origin
+      };
+
+      console.log('Widget config set:', window.IntVideoWidget);
+
+      // Load widget script
+      const script = document.createElement('script');
+      script.src = `${window.location.origin}/embed/widget.js`;
+      script.async = true;
+
+      script.onload = () => {
+        console.log('Widget script loaded successfully!');
+        setTimeout(() => {
+          const widget = document.querySelector('.int-video-widget');
+          console.log('Widget element found:', widget);
+        }, 1000);
+      };
+
+      script.onerror = (error) => {
+        console.error('Widget script failed to load:', error);
+      };
+
+      document.body.appendChild(script);
+
+      console.log('Widget script tag appended to body');
+
+      // Cleanup function
+      return () => {
+        // Remove widget elements if they exist
+        const widget = document.querySelector('.int-video-widget');
+        if (widget) widget.remove();
+
+        const modal = document.querySelector('.int-video-modal');
+        if (modal) modal.remove();
+
+        if (script.parentNode) {
+          document.body.removeChild(script);
+        }
+      };
+    } else {
+      console.log('No campaigns available for widget test');
+    }
+  }, [campaigns]);
+
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
