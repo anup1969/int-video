@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 
 export default function Header({ campaignName, scale, onSave, saveStatus, hasUnsavedChanges, campaignId, onOpenSettings, onTemplatesClick }) {
   const router = useRouter();
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [embedGreeting, setEmbedGreeting] = useState('Have a question? Chat with us!');
   const getSaveStatusDisplay = () => {
     switch (saveStatus) {
       case 'saving':
@@ -89,9 +92,7 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
         <button
           onClick={() => {
             if (campaignId) {
-              const url = `${window.location.origin}/campaign/${campaignId}`;
-              navigator.clipboard.writeText(url);
-              alert(`Campaign URL copied to clipboard!\n\n${url}`);
+              setShowShareModal(true);
             } else {
               alert('Please save the campaign first');
             }
@@ -102,5 +103,124 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
         </button>
       </div>
     </div>
+
+    {/* Share Modal */}
+    {showShareModal && campaignId && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowShareModal(false)}>
+        <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <i className="fas fa-share text-violet-600"></i>
+              Share Campaign
+            </h3>
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="text-gray-400 hover:text-gray-600 transition"
+            >
+              <i className="fas fa-times text-xl"></i>
+            </button>
+          </div>
+
+          {/* Modal Body */}
+          <div className="p-6 space-y-6">
+            {/* Option 1: Copy Campaign URL */}
+            <div className="border border-gray-200 rounded-lg p-5 hover:border-violet-300 transition">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <i className="fas fa-link text-violet-600"></i>
+                    Campaign URL
+                  </h4>
+                  <p className="text-sm text-gray-600 mb-3">Share direct link to your campaign</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={`${window.location.origin}/campaign/${campaignId}`}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}/campaign/${campaignId}`;
+                        navigator.clipboard.writeText(url);
+                        alert('URL copied to clipboard!');
+                      }}
+                      className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition flex items-center gap-2"
+                    >
+                      <i className="fas fa-copy"></i>
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Option 2: Get Embed Code */}
+            <div className="border border-gray-200 rounded-lg p-5 hover:border-violet-300 transition">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <i className="fas fa-code text-violet-600"></i>
+                    Embed Code
+                  </h4>
+                  <p className="text-sm text-gray-600 mb-3">Add a floating video widget to your website</p>
+
+                  {/* Greeting Message Input */}
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Greeting Message
+                    </label>
+                    <input
+                      type="text"
+                      value={embedGreeting}
+                      onChange={(e) => setEmbedGreeting(e.target.value)}
+                      placeholder="Have a question? Chat with us!"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const embedCode = `<!-- Int-Video Widget -->
+<script>
+  (function() {
+    window.IntVideoWidget = {
+      campaignId: '${campaignId}',
+      greeting: '${embedGreeting.replace(/'/g, "\\'")}',
+      apiUrl: '${window.location.origin}'
+    };
+    var script = document.createElement('script');
+    script.src = '${window.location.origin}/embed/widget.js';
+    script.async = true;
+    document.body.appendChild(script);
+  })();
+</script>`;
+                      navigator.clipboard.writeText(embedCode);
+                      alert('Embed code copied to clipboard!\n\nPaste it before the </body> tag on your website.');
+                    }}
+                    className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition flex items-center gap-2"
+                  >
+                    <i className="fas fa-clipboard"></i>
+                    Copy Embed Code
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
   );
 }
