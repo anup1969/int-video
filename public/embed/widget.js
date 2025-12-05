@@ -209,15 +209,8 @@
         console.log('IntVideoWidget: Loading video from', videoUrl);
         video.src = videoUrl;
         video.addEventListener('loadeddata', () => {
-          console.log('IntVideoWidget: Video loaded, starting playback');
+          console.log('IntVideoWidget: Video loaded, starting playback (looping)');
           video.play().catch(err => console.log('Autoplay prevented:', err));
-
-          // Stop after 5 seconds
-          setTimeout(() => {
-            video.pause();
-            video.currentTime = 0;
-            console.log('IntVideoWidget: Stopped after 5 seconds');
-          }, 5000);
         });
 
         video.addEventListener('error', (e) => {
