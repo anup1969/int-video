@@ -202,9 +202,12 @@
 
       console.log('IntVideoWidget: First step', firstStep);
 
-      if (firstStep && firstStep.video_url) {
-        console.log('IntVideoWidget: Loading video from', firstStep.video_url);
-        video.src = firstStep.video_url;
+      // Get video URL from either video_url or data.videoUrl
+      const videoUrl = firstStep?.video_url || firstStep?.data?.videoUrl;
+
+      if (firstStep && videoUrl) {
+        console.log('IntVideoWidget: Loading video from', videoUrl);
+        video.src = videoUrl;
         video.addEventListener('loadeddata', () => {
           console.log('IntVideoWidget: Video loaded, starting playback');
           video.play().catch(err => console.log('Autoplay prevented:', err));
