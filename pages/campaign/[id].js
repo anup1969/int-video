@@ -375,6 +375,18 @@ export default function CampaignViewer() {
   const currentStep = steps[currentStepIndex];
   const currentNode = campaign.nodes.find(n => n.stepNumber === currentStep?.stepNumber);
 
+  // Guard clause: If no current step, show loading
+  if (!currentStep) {
+    return (
+      <div className="fixed inset-0 w-full h-full flex items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading campaign...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);
