@@ -38,6 +38,7 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
   };
 
   return (
+    <>
     <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm z-10">
       <div className="flex items-center gap-4">
         <button
@@ -221,6 +222,6 @@ export default function Header({ campaignName, scale, onSave, saveStatus, hasUns
         </div>
       </div>
     )}
-  </div>
+    </>
   );
 }
