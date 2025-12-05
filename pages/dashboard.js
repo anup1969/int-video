@@ -25,63 +25,58 @@ export default function Dashboard() {
     console.log('Dashboard version: 3.0 - Response count fixed + Delete button with debug logging');
   }, []);
 
-  // TEST: Load embeddable widget with first campaign
+  // TEST: Load embeddable widget with specific campaign
   useEffect(() => {
-    if (campaigns.length > 0) {
-      const firstCampaign = campaigns[0];
+    // Use specific campaign ID for testing
+    const testCampaignId = '255359b5-c9e6-447c-8b19-1991d4bc05e0';
 
-      console.log('=== WIDGET TEST DEBUG ===');
-      console.log('First campaign:', firstCampaign);
-      console.log('Campaign ID:', firstCampaign.id);
-      console.log('Campaign name:', firstCampaign.name);
+    console.log('=== WIDGET TEST DEBUG ===');
+    console.log('Test campaign ID:', testCampaignId);
 
-      // Configure widget
-      window.IntVideoWidget = {
-        campaignId: firstCampaign.id,
-        greeting: 'Testing the widget!',
-        apiUrl: window.location.origin
-      };
+    // Configure widget
+    window.IntVideoWidget = {
+      campaignId: testCampaignId,
+      greeting: 'Testing the widget!',
+      apiUrl: window.location.origin
+    };
 
-      console.log('Widget config set:', window.IntVideoWidget);
+    console.log('Widget config set:', window.IntVideoWidget);
 
-      // Load widget script
-      const script = document.createElement('script');
-      script.src = `${window.location.origin}/embed/widget.js`;
-      script.async = true;
+    // Load widget script
+    const script = document.createElement('script');
+    script.src = `${window.location.origin}/embed/widget.js`;
+    script.async = true;
 
-      script.onload = () => {
-        console.log('Widget script loaded successfully!');
-        setTimeout(() => {
-          const widget = document.querySelector('.int-video-widget');
-          console.log('Widget element found:', widget);
-        }, 1000);
-      };
-
-      script.onerror = (error) => {
-        console.error('Widget script failed to load:', error);
-      };
-
-      document.body.appendChild(script);
-
-      console.log('Widget script tag appended to body');
-
-      // Cleanup function
-      return () => {
-        // Remove widget elements if they exist
+    script.onload = () => {
+      console.log('Widget script loaded successfully!');
+      setTimeout(() => {
         const widget = document.querySelector('.int-video-widget');
-        if (widget) widget.remove();
+        console.log('Widget element found:', widget);
+      }, 1000);
+    };
 
-        const modal = document.querySelector('.int-video-modal');
-        if (modal) modal.remove();
+    script.onerror = (error) => {
+      console.error('Widget script failed to load:', error);
+    };
 
-        if (script.parentNode) {
-          document.body.removeChild(script);
-        }
-      };
-    } else {
-      console.log('No campaigns available for widget test');
-    }
-  }, [campaigns]);
+    document.body.appendChild(script);
+
+    console.log('Widget script tag appended to body');
+
+    // Cleanup function
+    return () => {
+      // Remove widget elements if they exist
+      const widget = document.querySelector('.int-video-widget');
+      if (widget) widget.remove();
+
+      const modal = document.querySelector('.int-video-modal');
+      if (modal) modal.remove();
+
+      if (script.parentNode) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     loadCampaigns();
