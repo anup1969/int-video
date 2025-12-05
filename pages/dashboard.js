@@ -7,6 +7,19 @@ import TemplatesModal from '../components/TemplatesModal';
 export default function Dashboard() {
   const router = useRouter();
 
+  // State declarations
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'draft', 'active', 'archived'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [campaignToEdit, setCampaignToEdit] = useState(null);
+  const [editPassword, setEditPassword] = useState(null);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+
   // Version check - if you see this in console, the latest code is loaded
   useEffect(() => {
     console.log('Dashboard version: 3.0 - Response count fixed + Delete button with debug logging');
@@ -69,18 +82,6 @@ export default function Dashboard() {
       console.log('No campaigns available for widget test');
     }
   }, [campaigns]);
-
-  const [campaigns, setCampaigns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'draft', 'active', 'archived'
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [campaignToDelete, setCampaignToDelete] = useState(null);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [campaignToEdit, setCampaignToEdit] = useState(null);
-  const [editPassword, setEditPassword] = useState(null);
-  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
