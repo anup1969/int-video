@@ -785,7 +785,7 @@ export default function CampaignViewer() {
       onMouseMove={handleMouseMove}
       style={{ height: '100vh', height: '100dvh' }}
     >
-      {/* Fullscreen Video or Text Background */}
+      {/* Fullscreen Video, Photo or Text Background */}
       {currentStep.slideType === 'text' ? (
         <div
           className="absolute inset-0 w-full h-full flex items-center justify-center p-6 sm:p-8 md:p-12 lg:p-16"
@@ -798,6 +798,13 @@ export default function CampaignViewer() {
             {currentStep.textContent || ''}
           </p>
         </div>
+      ) : (currentStep.displayPriority === 'photo' && currentStep.photoUrl) ? (
+        // Show photo if display priority is photo
+        <img
+          src={currentStep.photoUrl}
+          alt="Step background"
+          className="absolute inset-0 w-full h-full object-contain bg-black"
+        />
       ) : currentStep.videoUrl ? (
         <>
           <video
@@ -818,11 +825,18 @@ export default function CampaignViewer() {
             />
           </div>
         </>
+      ) : currentStep.photoUrl ? (
+        // Show photo if no video or if only photo exists
+        <img
+          src={currentStep.photoUrl}
+          alt="Step background"
+          className="absolute inset-0 w-full h-full object-contain bg-black"
+        />
       ) : (
         <div className="absolute inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
           <div className="text-center text-gray-400">
-            <i className="fas fa-play-circle text-6xl mb-4"></i>
-            <div className="text-xl">Video placeholder</div>
+            <i className="fas fa-image text-6xl mb-4"></i>
+            <div className="text-xl">No media uploaded</div>
           </div>
         </div>
       )}

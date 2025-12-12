@@ -1,4 +1,5 @@
 import VideoUpload from "./VideoUpload";
+import PhotoUpload from "./PhotoUpload";
 import { answerTypes, backgroundMusicOptions } from '../../lib/utils/constants';
 
 export default function EditModal({
@@ -239,10 +240,51 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
 
       {/* Video Upload Section */}
       {slideType === 'video' && (
-        <VideoUpload
-          currentVideoUrl={editingStep.videoUrl}
-          onVideoUploaded={(url) => setEditingStep({ ...editingStep, videoUrl: url })}
-        />
+        <div className="space-y-4">
+          <VideoUpload
+            currentVideoUrl={editingStep.videoUrl}
+            onVideoUploaded={(url) => setEditingStep({ ...editingStep, videoUrl: url })}
+          />
+
+          <PhotoUpload
+            currentPhotoUrl={editingStep.photoUrl}
+            onPhotoUploaded={(url) => setEditingStep({ ...editingStep, photoUrl: url })}
+          />
+
+          {/* Display Priority Toggle */}
+          {editingStep.videoUrl && editingStep.photoUrl && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <i className="fas fa-eye mr-2 text-blue-600"></i>
+                Display Priority (What should viewers see?)
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="displayPriority"
+                    value="video"
+                    checked={editingStep.displayPriority !== 'photo'}
+                    onChange={(e) => setEditingStep({ ...editingStep, displayPriority: 'video' })}
+                    className="w-4 h-4 text-violet-600"
+                  />
+                  <span className="text-sm font-medium">Show Video</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="displayPriority"
+                    value="photo"
+                    checked={editingStep.displayPriority === 'photo'}
+                    onChange={(e) => setEditingStep({ ...editingStep, displayPriority: 'photo' })}
+                    className="w-4 h-4 text-violet-600"
+                  />
+                  <span className="text-sm font-medium">Show Photo</span>
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Text Slide Editor */}
