@@ -723,6 +723,8 @@ Check console for details.`);
               answerType: editingStep.answerType,
               logicRules: editingStep.logicRules,
               videoUrl: editingStep.videoUrl,
+              photoUrl: editingStep.photoUrl,
+              displayPriority: editingStep.displayPriority,
               videoPlaceholder: answerTypes.find((t) => t.id === editingStep.answerType)?.icon,
               mcOptions: editingStep.mcOptions,
               buttonOptions: editingStep.buttonOptions,
