@@ -140,6 +140,8 @@ export default async function handler(req, res) {
         originalId: node.id, // Store frontend ID for mapping
         position: node.position,
         videoUrl: node.videoUrl || null,
+        photoUrl: node.photoUrl || null,
+        displayPriority: node.displayPriority || 'video',
         videoThumbnail: node.videoThumbnail || null,
         videoPlaceholder: node.videoPlaceholder || '🎬',
         mcOptions: node.mcOptions || [],
