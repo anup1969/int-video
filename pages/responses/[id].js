@@ -90,31 +90,51 @@ export default function ResponseViewer() {
         .map(([key, value]) => value);
       return fieldValues.length > 0 ? fieldValues.join(' - ') : 'No data';
     } else if (answerData.type === 'video' && answerData.fileUrl) {
+      // Show inline video thumbnail with link to full viewer
       return (
-        <a
-          href={`/viewer/${id}?responseId=${responseId}&stepId=${stepId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-violet-600 hover:text-violet-800 underline font-medium"
-        >
-          View Video
-        </a>
+        <div className="flex flex-col gap-2">
+          <video
+            controls
+            className="h-16 w-full max-w-[120px] rounded bg-black"
+            src={answerData.fileUrl}
+          >
+            Video not supported
+          </video>
+          <a
+            href={`/viewer/${id}?responseId=${responseId}&stepId=${stepId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-violet-600 hover:text-violet-800 underline text-xs"
+          >
+            <i className="fas fa-external-link-alt mr-1"></i>Open in viewer
+          </a>
+        </div>
       );
     } else if (answerData.type === 'audio' && answerData.fileUrl) {
+      // Show inline audio player with link to full viewer
       return (
-        <a
-          href={`/viewer/${id}?responseId=${responseId}&stepId=${stepId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-violet-600 hover:text-violet-800 underline font-medium"
-        >
-          View Audio
-        </a>
+        <div className="flex flex-col gap-2">
+          <audio
+            controls
+            className="h-8 w-full max-w-[200px]"
+            src={answerData.fileUrl}
+          >
+            Audio not supported
+          </audio>
+          <a
+            href={`/viewer/${id}?responseId=${responseId}&stepId=${stepId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-violet-600 hover:text-violet-800 underline text-xs"
+          >
+            <i className="fas fa-external-link-alt mr-1"></i>Open in viewer
+          </a>
+        </div>
       );
     } else if (answerData.type === 'video') {
-      return 'Video response recorded';
+      return 'Video response recorded (no file URL)';
     } else if (answerData.type === 'audio') {
-      return 'Audio response recorded';
+      return 'Audio response recorded (no file URL)';
     } else if (answerData.type === 'file' && answerData.fileUrl) {
       return (
         <a
