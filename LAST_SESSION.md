@@ -38,6 +38,7 @@
 - Proactively fix issues and inform (don't wait for explicit instructions)
 - Report all hardcoded values, conditions, and variables when implementing
 - Be transparent about assumptions made in code
+- Greeting preference: "Jai Shri Krishna" (not good morning/good night)
 
 ## Next Session
 Just say "continue with int-video" and I'll read this file to get context.
