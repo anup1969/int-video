@@ -84,7 +84,11 @@ export default function ResponseViewer() {
       return answerData.value;
     } else if (answerData.type === 'contact-form') {
       const formData = answerData.value;
-      return `${formData.name || ''} - ${formData.email || ''} - ${formData.phone || ''}`;
+      // Display all form fields dynamically instead of hardcoded name/email/phone
+      const fieldValues = Object.entries(formData || {})
+        .filter(([key, value]) => value) // Only show fields with values
+        .map(([key, value]) => value);
+      return fieldValues.length > 0 ? fieldValues.join(' - ') : 'No data';
     } else if (answerData.type === 'video' && answerData.fileUrl) {
       return (
         <a
