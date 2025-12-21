@@ -67,6 +67,7 @@ export default function FlowBuilder() {
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [suggestedName, setSuggestedName] = useState('');
+  const [isDuplicateNameError, setIsDuplicateNameError] = useState(false);
 
   // State management
   const [nodes, setNodes] = useState([
@@ -166,6 +167,8 @@ export default function FlowBuilder() {
                 answerType: step.answer_type || 'open-ended',
                 logicRules: step.data?.logicRules || [],
                 videoUrl: step.data?.videoUrl || null,
+                photoUrl: step.data?.photoUrl || null,
+                displayPriority: step.data?.displayPriority || 'video',
                 videoThumbnail: step.data?.videoThumbnail || null,
                 videoPlaceholder: step.data?.videoPlaceholder || '🎬',
                 mcOptions: step.data?.mcOptions || [],
@@ -174,6 +177,11 @@ export default function FlowBuilder() {
                 enabledResponseTypes: step.data?.enabledResponseTypes || { video: true, audio: true, text: true },
                 showContactForm: step.data?.showContactForm || false,
                 contactFormFields: step.data?.contactFormFields || defaultContactFormFields,
+                slideType: step.data?.slideType || 'video',
+                textContent: step.data?.textContent || '',
+                textPosition: step.data?.textPosition || 'middle-center',
+                backgroundColor: step.data?.backgroundColor || '',
+                fontFamily: step.data?.fontFamily || '',
               }))
             ];
 
@@ -230,6 +238,7 @@ export default function FlowBuilder() {
 
         // Set suggested name
         setSuggestedName('Campaign ' + (highestNum + 1));
+        setIsDuplicateNameError(false); // Not a duplicate error, just untitled
         setShowRenameDialog(true);
         return; // Don't save yet, wait for user action
       }
@@ -266,16 +275,36 @@ export default function FlowBuilder() {
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
       console.error('Save error:', error);
-      
-      // Check if it's a duplicate name error
+
+      // Check if it's a duplicate name error - show rename dialog
       if (error.message && error.message.includes('already exists')) {
-        alert(error.message);
+        // Get next available campaign number for suggestion
+        const { data: allCampaigns } = await supabase
+          .from('campaigns')
+          .select('name')
+          .order('created_at', { ascending: false });
+
+        let highestNum = 0;
+        allCampaigns?.forEach(camp => {
+          const match = camp.name.match(/^Campaign (\d+)$/i);
+          if (match) {
+            const num = parseInt(match[1]);
+            if (num > highestNum) highestNum = num;
+          }
+        });
+
+        // Suggest next available name
+        setSuggestedName(`Campaign ${highestNum + 1}`);
+        setIsDuplicateNameError(true);
+        setShowRenameDialog(true);
+        setSaveStatus('idle');
+        return; // Don't show error state, let user rename
       } else {
         alert(`Save Failed: ${error.message}
 
 Check console for details.`);
       }
-      
+
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
@@ -358,6 +387,8 @@ Check console for details.`);
           answerType: step.answer_type,
           logicRules: step.data?.logicRules || [],
           videoUrl: step.data?.videoUrl || null,
+          photoUrl: step.data?.photoUrl || null,
+          displayPriority: step.data?.displayPriority || 'video',
           videoThumbnail: step.data?.videoThumbnail || null,
           videoPlaceholder: step.data?.videoPlaceholder || '🎬',
           mcOptions: step.data?.mcOptions || [],
@@ -366,6 +397,11 @@ Check console for details.`);
           enabledResponseTypes: step.data?.enabledResponseTypes || { video: true, audio: true, text: true },
           showContactForm: step.data?.showContactForm || false,
           contactFormFields: step.data?.contactFormFields || defaultContactFormFields,
+          slideType: step.data?.slideType || 'video',
+          textContent: step.data?.textContent || '',
+          textPosition: step.data?.textPosition || 'middle-center',
+          backgroundColor: step.data?.backgroundColor || '',
+          fontFamily: step.data?.fontFamily || '',
         }))
       ];
 
@@ -648,6 +684,8 @@ Check console for details.`);
         answerType: node.answerType,
         logicRules: logicRules,
         videoUrl: node.videoUrl || '',
+        photoUrl: node.photoUrl || '',
+        displayPriority: node.displayPriority || 'video',
         mcOptions: mcOptionsToUse,
         buttonOptions: node.buttonOptions || [{ text: 'Continue', target: '', targetType: 'node' }],
         buttonShowTime: node.buttonShowTime || 0,
@@ -656,6 +694,7 @@ Check console for details.`);
         contactFormFields: node.contactFormFields || defaultContactFormFields,
         slideType: node.slideType || 'video',
         textContent: node.textContent || '',
+        textPosition: node.textPosition || 'middle-center',
         backgroundColor: node.backgroundColor || '',
         fontFamily: node.fontFamily || '',
       });
@@ -734,6 +773,7 @@ Check console for details.`);
               contactFormFields: editingStep.contactFormFields,
               slideType: editingStep.slideType || 'video',
               textContent: editingStep.textContent || '',
+              textPosition: editingStep.textPosition || 'middle-center',
               backgroundColor: editingStep.backgroundColor || '',
               fontFamily: editingStep.fontFamily || '',
             }
@@ -1305,18 +1345,25 @@ Check console for details.`);
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-exclamation-triangle text-orange-600 text-xl"></i>
+              <div className={`w-12 h-12 ${isDuplicateNameError ? 'bg-red-100' : 'bg-orange-100'} rounded-lg flex items-center justify-center`}>
+                <i className={`fas ${isDuplicateNameError ? 'fa-copy' : 'fa-exclamation-triangle'} ${isDuplicateNameError ? 'text-red-600' : 'text-orange-600'} text-xl`}></i>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Campaign Not Named</h3>
-                <p className="text-sm text-gray-600">Give your campaign a unique name</p>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {isDuplicateNameError ? 'Duplicate Campaign Name' : 'Campaign Not Named'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {isDuplicateNameError ? 'This name already exists' : 'Give your campaign a unique name'}
+                </p>
               </div>
             </div>
 
             <div className="mb-6">
               <p className="text-gray-700 mb-3">
-                You haven't named your campaign yet. Please enter a name below:
+                {isDuplicateNameError
+                  ? `The name "${campaignName}" is already in use. Please choose a different name:`
+                  : 'You haven\'t named your campaign yet. Please enter a name below:'
+                }
               </p>
               <input
                 type="text"
@@ -1335,9 +1382,11 @@ Check console for details.`);
                     }
                     setCampaignName(trimmed);
                     setShowRenameDialog(false);
+                    setIsDuplicateNameError(false);
                     setTimeout(() => saveCampaign(), 100);
                   } else if (e.key === 'Escape') {
                     setShowRenameDialog(false);
+                    setIsDuplicateNameError(false);
                   }
                 }}
               />
@@ -1358,6 +1407,7 @@ Check console for details.`);
                   }
                   setCampaignName(trimmed);
                   setShowRenameDialog(false);
+                  setIsDuplicateNameError(false);
                   // Trigger save after setting the name
                   setTimeout(() => saveCampaign(), 100);
                 }}
@@ -1367,7 +1417,10 @@ Check console for details.`);
                 Save
               </button>
               <button
-                onClick={() => setShowRenameDialog(false)}
+                onClick={() => {
+                  setShowRenameDialog(false);
+                  setIsDuplicateNameError(false);
+                }}
                 className="w-full px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition"
               >
                 Cancel
