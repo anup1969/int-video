@@ -488,7 +488,10 @@ export default function ResponseViewer() {
             <table className="min-w-full border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b-2 border-gray-200">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-10">
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200 w-12">
+                    #
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200 sticky left-12 bg-gray-50 z-10">
                     Name
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200">
@@ -537,7 +540,10 @@ export default function ResponseViewer() {
               <tbody>
                 {filteredResponses.map((response, rowIdx) => (
                   <tr key={response.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200 sticky left-0 bg-white font-medium">
+                    <td className="px-3 py-3 text-sm text-center text-gray-500 border-r border-gray-200 bg-gray-50 font-medium w-12">
+                      {rowIdx + 1}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200 sticky left-12 bg-white font-medium">
                       {response.userName}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-200">
@@ -565,6 +571,9 @@ export default function ResponseViewer() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                    #
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Respondent
                   </th>
@@ -586,8 +595,11 @@ export default function ResponseViewer() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredResponses.map((response) => (
+                {filteredResponses.map((response, rowIdx) => (
                   <tr key={response.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-4 text-center text-sm text-gray-500 font-medium w-12">
+                      {rowIdx + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{response.userName}</div>
