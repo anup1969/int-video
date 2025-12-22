@@ -199,8 +199,108 @@ export default function ResponseViewer() {
   });
 
   const handleExportCSV = () => {
-    // Placeholder for CSV export functionality
-    alert('CSV export functionality coming soon!');
+    if (filteredResponses.length === 0) {
+      alert('No responses to export');
+      return;
+    }
+
+    // Helper to escape CSV values
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      // If contains comma, newline, or quote, wrap in quotes and escape internal quotes
+      if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    // Helper to format answer data for CSV
+    const formatAnswerForCSV = (answerData) => {
+      if (!answerData) return '';
+
+      if (answerData.type === 'text' || answerData.type === 'option' || answerData.type === 'selection') {
+        return answerData.value || '';
+      } else if (answerData.type === 'contact-form') {
+        const formData = answerData.value || {};
+        return Object.entries(formData)
+          .filter(([key, value]) => value)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('; ');
+      } else if (answerData.type === 'video' && answerData.fileUrl) {
+        return `Video: ${answerData.fileUrl}`;
+      } else if (answerData.type === 'audio' && answerData.fileUrl) {
+        return `Audio: ${answerData.fileUrl}`;
+      } else if (answerData.type === 'video') {
+        return 'Video (no file URL)';
+      } else if (answerData.type === 'audio') {
+        return 'Audio (no file URL)';
+      } else if (answerData.type === 'file' && answerData.fileUrl) {
+        return `File: ${answerData.fileUrl}`;
+      }
+      return JSON.stringify(answerData.value || '');
+    };
+
+    // Get all unique step numbers for columns
+    const allSteps = new Set();
+    filteredResponses.forEach(response => {
+      response.responses.forEach(resp => {
+        allSteps.add(resp.step);
+      });
+    });
+    const sortedSteps = Array.from(allSteps).sort((a, b) => a - b);
+
+    // Create header row
+    const headers = [
+      '#',
+      'Name',
+      'Email',
+      'Status',
+      'Device',
+      'Duration',
+      'Submitted',
+      ...sortedSteps.map(step => `Step ${step}`)
+    ];
+
+    // Create data rows
+    const rows = filteredResponses.map((response, idx) => {
+      const stepAnswers = sortedSteps.map(stepNum => {
+        const stepResp = response.responses.find(r => r.step === stepNum);
+        return stepResp ? formatAnswerForCSV(stepResp.rawData) : '';
+      });
+
+      return [
+        idx + 1,
+        response.userName || '',
+        response.email || '',
+        response.status || '',
+        response.deviceType || '',
+        response.duration || '',
+        response.completedAt ? new Date(response.completedAt).toLocaleString() : '',
+        ...stepAnswers
+      ];
+    });
+
+    // Combine headers and rows into CSV string
+    const csvContent = [
+      headers.map(escapeCSV).join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
+    ].join('\n');
+
+    // Add BOM for Excel UTF-8 compatibility
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // Create download link
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${campaign?.name || 'responses'}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const formatDate = (dateString) => {
@@ -333,8 +433,8 @@ export default function ResponseViewer() {
                 onClick={handleExportCSV}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2"
               >
-                <i className="fas fa-download"></i>
-                Export CSV
+                <i className="fas fa-file-excel"></i>
+                Export to Excel
               </button>
             </div>
           </div>
