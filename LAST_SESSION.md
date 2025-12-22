@@ -39,6 +39,7 @@
 - Report all hardcoded values, conditions, and variables when implementing
 - Be transparent about assumptions made in code
 - Greeting preference: "Jai Shri Krishna" (not good morning/good night)
+- Auto-push to tester dashboard: After fixing bugs or creating features, automatically add new version to tester dashboard (don't wait to be asked)
 
 ## Next Session
 Just say "continue with int-video" and I'll read this file to get context.
