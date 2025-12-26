@@ -1,0 +1,23 @@
+{
+  "release_title": "Version Title Here",
+  "release_summary": "Brief summary of what this version includes...",
+  "changes": [
+    { "type": "feature", "title": "Feature Name", "description": "What the feature does" },
+    { "type": "fix", "title": "Bug Fix Name", "description": "What was fixed" },
+    { "type": "improvement", "title": "Improvement Name", "description": "What was improved" }
+  ],
+  "known_issues": [
+    { "description": "Known issue description", "severity": "low" }
+  ],
+  "test_cases": [
+    {
+      "title": "Test Case Title",
+      "description": "What to test",
+      "steps": [
+        "Step 1: Do this",
+        "Step 2: Do that",
+        "Step 3: Verify result"
+      ]
+    }
+  ]
+}

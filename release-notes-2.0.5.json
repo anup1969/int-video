@@ -1,0 +1,67 @@
+{
+  "release_title": "Response Page Enhancements & Bug Fixes",
+  "release_summary": "Major improvements to response viewing including Excel export, inline media players, response numbering, and fixes for contact form display and duplicate campaign name handling.",
+  "changes": [
+    { "type": "feature", "title": "Excel Export", "description": "Download all responses to CSV file (opens in Excel)" },
+    { "type": "feature", "title": "Response Numbers", "description": "Added # column showing 1, 2, 3... in both table and list views" },
+    { "type": "feature", "title": "Inline Audio Player", "description": "Audio responses now play directly in the response table" },
+    { "type": "feature", "title": "Inline Video Player", "description": "Video responses now show thumbnail with player in table" },
+    { "type": "fix", "title": "Contact Form Display", "description": "Now shows ALL form fields dynamically (was hardcoded to only 3 fields: name, email, phone)" },
+    { "type": "fix", "title": "Duplicate Campaign Name", "description": "Now shows rename dialog with suggested name instead of just an alert" }
+  ],
+  "known_issues": [
+    { "description": "Some older audio responses may show 'no file URL' if upload failed during original recording", "severity": "low" }
+  ],
+  "test_cases": [
+    {
+      "title": "Test Excel Export functionality",
+      "description": "Verify that responses can be exported to Excel/CSV format",
+      "steps": [
+        "Go to any campaign with responses (Dashboard > View Responses)",
+        "Click 'Export to Excel' button (top right)",
+        "Open downloaded file in Excel or Google Sheets",
+        "Verify all response data is present"
+      ]
+    },
+    {
+      "title": "Test Response Numbers display",
+      "description": "Verify that response numbers appear correctly in both views",
+      "steps": [
+        "Go to response page (Table View)",
+        "Check first column header shows '#'",
+        "Check row numbers show 1, 2, 3...",
+        "Switch to List View and verify numbers there too"
+      ]
+    },
+    {
+      "title": "Test Inline Audio Player",
+      "description": "Verify that audio responses play directly in the response table",
+      "steps": [
+        "Go to a campaign with audio responses",
+        "Find a response with audio answer",
+        "Click play button on audio player",
+        "Verify audio plays directly in browser"
+      ]
+    },
+    {
+      "title": "Test Contact Form Display (Bug Fix)",
+      "description": "Verify that ALL contact form fields are displayed, not just name/email/phone",
+      "steps": [
+        "Create a campaign with Contact Form answer type with 5+ fields",
+        "Submit a test response filling all fields",
+        "Go to response page and find the submission",
+        "Verify ALL field values are displayed"
+      ]
+    },
+    {
+      "title": "Test Duplicate Campaign Name Handling (Bug Fix)",
+      "description": "Verify that duplicate campaign names trigger a rename dialog instead of just an alert",
+      "steps": [
+        "Note the name of an existing campaign",
+        "Create/open another campaign and change name to match existing",
+        "Click Save",
+        "Verify a rename dialog appears (NOT just an alert)"
+      ]
+    }
+  ]
+}
