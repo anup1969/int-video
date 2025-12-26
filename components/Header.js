@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Header({ title = 'Campaign Dashboard', showNewCampaign = true, showTemplates = false, onTemplatesClick = null }) {
+export default function Header({ title = 'Videoflux', showNewCampaign = true, showTemplates = false, onTemplatesClick = null }) {
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
