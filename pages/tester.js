@@ -542,6 +542,85 @@ export default function TesterDashboard() {
                           </ul>
                         </div>
                       )}
+
+                      {/* PMS Test Results */}
+                      {pmsStatuses[version.version_number] && (
+                        <div className={`rounded-lg border-2 p-5 shadow-sm ${
+                          pmsStatuses[version.version_number].event === 'version_approved'
+                            ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200'
+                            : 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200'
+                        }`}>
+                          <h4 className={`font-bold mb-4 flex items-center gap-2 text-base ${
+                            pmsStatuses[version.version_number].event === 'version_approved'
+                              ? 'text-emerald-900'
+                              : 'text-red-900'
+                          }`}>
+                            <i className={`fas ${
+                              pmsStatuses[version.version_number].event === 'version_approved'
+                                ? 'fa-check-circle'
+                                : 'fa-exclamation-circle'
+                            }`}></i>
+                            PMS Test Results
+                            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                              pmsStatuses[version.version_number].event === 'version_approved'
+                                ? 'bg-emerald-200 text-emerald-800'
+                                : 'bg-red-200 text-red-800'
+                            }`}>
+                              {pmsStatuses[version.version_number].event === 'version_approved' ? 'Approved' : 'Rebuild Requested'}
+                            </span>
+                          </h4>
+
+                          {pmsStatuses[version.version_number].data?.test_results && (
+                            <div className="space-y-2">
+                              {pmsStatuses[version.version_number].data.test_results.map((result, idx) => (
+                                <div key={idx} className="flex items-center gap-3 bg-white rounded-lg p-3 shadow-sm">
+                                  <span className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${
+                                    result.status === 'properly_working' ? 'bg-green-100' :
+                                    result.status === 'not_working' ? 'bg-red-100' :
+                                    result.status === 'partially_working' ? 'bg-yellow-100' :
+                                    'bg-gray-100'
+                                  }`}>
+                                    <i className={`fas ${
+                                      result.status === 'properly_working' ? 'fa-check text-green-600' :
+                                      result.status === 'not_working' ? 'fa-times text-red-600' :
+                                      result.status === 'partially_working' ? 'fa-exclamation text-yellow-600' :
+                                      'fa-question text-gray-600'
+                                    }`}></i>
+                                  </span>
+                                  <div className="flex-1">
+                                    <div className="text-sm font-medium text-gray-900">{result.title}</div>
+                                    {result.notes && (
+                                      <div className="text-xs text-gray-500 mt-1">{result.notes}</div>
+                                    )}
+                                  </div>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    result.status === 'properly_working' ? 'bg-green-100 text-green-700' :
+                                    result.status === 'not_working' ? 'bg-red-100 text-red-700' :
+                                    result.status === 'partially_working' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {result.status === 'properly_working' ? 'Properly Working' :
+                                     result.status === 'not_working' ? 'Not Working' :
+                                     result.status === 'partially_working' ? 'Partially Working' :
+                                     result.status}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {pmsStatuses[version.version_number].data?.rebuild_notes && (
+                            <div className="mt-4 p-3 bg-white rounded-lg border border-red-200">
+                              <div className="text-sm font-medium text-red-800 mb-1">Rebuild Notes:</div>
+                              <div className="text-sm text-gray-700">{pmsStatuses[version.version_number].data.rebuild_notes}</div>
+                            </div>
+                          )}
+
+                          <div className="mt-3 text-xs text-gray-500">
+                            Updated: {new Date(pmsStatuses[version.version_number].created_at).toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Testing Table */}
