@@ -336,17 +336,61 @@ function VideoTab({ editingStep, setEditingStep, updateContactFormField, removeC
             </select>
           </div>
 
+          {/* Text Position */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Text Position</label>
+            <div className="grid grid-cols-3 gap-2 max-w-xs">
+              {[
+                { value: 'top-left', icon: '↖', label: 'Top Left' },
+                { value: 'top-center', icon: '↑', label: 'Top Center' },
+                { value: 'top-right', icon: '↗', label: 'Top Right' },
+                { value: 'middle-left', icon: '←', label: 'Middle Left' },
+                { value: 'middle-center', icon: '●', label: 'Center' },
+                { value: 'middle-right', icon: '→', label: 'Middle Right' },
+                { value: 'bottom-left', icon: '↙', label: 'Bottom Left' },
+                { value: 'bottom-center', icon: '↓', label: 'Bottom Center' },
+                { value: 'bottom-right', icon: '↘', label: 'Bottom Right' },
+              ].map((position) => (
+                <button
+                  key={position.value}
+                  type="button"
+                  onClick={() => setEditingStep({ ...editingStep, textPosition: position.value })}
+                  className={`h-14 rounded-lg border-2 transition flex items-center justify-center text-2xl ${
+                    (editingStep.textPosition || 'middle-center') === position.value
+                      ? 'border-violet-600 bg-violet-100 text-violet-700'
+                      : 'border-gray-300 hover:border-violet-400 bg-white'
+                  }`}
+                  title={position.label}
+                >
+                  {position.icon}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Preview */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Preview</label>
             <div
-              className="w-full h-48 rounded-lg flex items-center justify-center p-6"
+              className={`w-full h-48 rounded-lg flex p-6 ${
+                (editingStep.textPosition || 'middle-center').includes('top') ? 'items-start' :
+                (editingStep.textPosition || 'middle-center').includes('bottom') ? 'items-end' :
+                'items-center'
+              } ${
+                (editingStep.textPosition || 'middle-center').includes('left') ? 'justify-start' :
+                (editingStep.textPosition || 'middle-center').includes('right') ? 'justify-end' :
+                'justify-center'
+              }`}
               style={{
                 background: editingStep.backgroundColor || backgroundColors[0].value,
                 fontFamily: editingStep.fontFamily || fonts[0].value,
               }}
             >
-              <p className="text-white text-center text-xl font-bold break-words max-w-full">
+              <p className={`text-white text-xl font-bold break-words max-w-full ${
+                (editingStep.textPosition || 'middle-center').includes('left') ? 'text-left' :
+                (editingStep.textPosition || 'middle-center').includes('right') ? 'text-right' :
+                'text-center'
+              }`}>
                 {editingStep.textContent || 'Your text will appear here...'}
               </p>
             </div>

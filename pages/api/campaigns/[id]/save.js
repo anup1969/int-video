@@ -153,6 +153,7 @@ export default async function handler(req, res) {
         logicRules: node.logicRules || [],
         slideType: node.slideType || 'video',
         textContent: node.textContent || '',
+        textPosition: node.textPosition || 'middle-center',
         backgroundColor: node.backgroundColor || '',
         fontFamily: node.fontFamily || '',
       }

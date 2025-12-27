@@ -1,0 +1,41 @@
+{
+  "release_title": "Branding Update - Videoflux",
+  "release_summary": "Renamed the main dashboard header from 'Campaign Dashboard' to 'Videoflux' for brand consistency.",
+  "changes": [
+    { "type": "improvement", "title": "Dashboard Branding", "description": "Renamed dashboard header from 'Campaign Dashboard' to 'Videoflux'" },
+    { "type": "improvement", "title": "Header Component", "description": "Updated default title prop in Header component to 'Videoflux'" }
+  ],
+  "known_issues": [],
+  "test_cases": [
+    {
+      "title": "Verify Videoflux branding on main dashboard",
+      "description": "Check that the dashboard header shows 'Videoflux' instead of 'Campaign Dashboard'",
+      "steps": [
+        "Login to the application at https://int-video.vercel.app",
+        "View the main dashboard page",
+        "Check the header/title at the top left of the page",
+        "Verify it displays 'Videoflux' (NOT 'Campaign Dashboard')"
+      ]
+    },
+    {
+      "title": "Verify branding persists across navigation",
+      "description": "Check that Videoflux branding shows consistently when navigating",
+      "steps": [
+        "Go to main dashboard (https://int-video.vercel.app/dashboard)",
+        "Verify header shows 'Videoflux'",
+        "Click on any campaign to open builder",
+        "Navigate back to dashboard",
+        "Verify header still shows 'Videoflux'"
+      ]
+    },
+    {
+      "title": "Verify browser tab/title",
+      "description": "Check that browser tab reflects the branding update",
+      "steps": [
+        "Go to the main dashboard",
+        "Check the browser tab title",
+        "Note what it displays (may or may not include Videoflux based on page setup)"
+      ]
+    }
+  ]
+}

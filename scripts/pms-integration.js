@@ -43,7 +43,8 @@ async function pushVersion() {
   let payload = {
     version_number: version,
     project_name: 'int-video',
-    api_key: PMS_API_KEY
+    api_key: PMS_API_KEY,
+    webhook_url: 'https://int-video.vercel.app/api/pms-webhook'
   };
 
   // Load from changes file if provided
