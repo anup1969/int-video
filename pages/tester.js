@@ -6,6 +6,7 @@ export default function TesterDashboard() {
   const [expandedVersion, setExpandedVersion] = useState(null);
   const [testResults, setTestResults] = useState({});
   const [loading, setLoading] = useState(true);
+  const [pmsStatuses, setPmsStatuses] = useState({}); // PMS approval status by version_number
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportForm, setReportForm] = useState({
     version_id: '',
@@ -31,6 +32,21 @@ export default function TesterDashboard() {
         .order('release_date', { ascending: false });
 
       setVersions(versionsData || []);
+
+      // Load PMS notifications (latest per version)
+      const { data: pmsData } = await supabase
+        .from('pms_notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Build map of version_number -> latest PMS status
+      const pmsMap = {};
+      pmsData?.forEach(notification => {
+        if (!pmsMap[notification.version_number]) {
+          pmsMap[notification.version_number] = notification;
+        }
+      });
+      setPmsStatuses(pmsMap);
 
       // Load existing test reports
       const { data: reportsData } = await supabase
@@ -325,6 +341,26 @@ export default function TesterDashboard() {
     return badges[status] || badges.testing;
   };
 
+  const getPmsStatusBadge = (versionNumber) => {
+    const pmsNotification = pmsStatuses[versionNumber];
+    if (!pmsNotification) return null;
+
+    if (pmsNotification.event === 'version_approved') {
+      return {
+        text: 'PMS Approved',
+        icon: 'fa-check-circle',
+        className: 'bg-emerald-100 text-emerald-700 border-emerald-300'
+      };
+    } else if (pmsNotification.event === 'rebuild_requested') {
+      return {
+        text: 'Rebuild Requested',
+        icon: 'fa-exclamation-circle',
+        className: 'bg-red-100 text-red-700 border-red-300'
+      };
+    }
+    return null;
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-IN', {
@@ -428,9 +464,17 @@ export default function TesterDashboard() {
                     {/* Status */}
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Status</div>
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(version.status)}`}>
-                        {version.status}
-                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(version.status)}`}>
+                          {version.status}
+                        </span>
+                        {getPmsStatusBadge(version.version_number) && (
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getPmsStatusBadge(version.version_number).className}`}>
+                            <i className={`fas ${getPmsStatusBadge(version.version_number).icon}`}></i>
+                            {getPmsStatusBadge(version.version_number).text}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

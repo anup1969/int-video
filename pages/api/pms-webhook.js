@@ -7,6 +7,13 @@
  * - rebuild_requested: Tester found issues and requested a rebuild
  */
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -22,22 +29,41 @@ export default async function handler(req, res) {
 
   console.log(`[PMS Webhook] Received event: ${event} for version ${version_number}`);
 
-  switch (event) {
-    case 'version_approved':
-      console.log(`[PMS] Version ${version_number} APPROVED!`);
-      console.log(`[PMS] Test results:`, data?.test_results);
-      // Could trigger deployment, send notification, update internal status, etc.
-      break;
+  try {
+    // Save notification to database
+    const { error: insertError } = await supabase
+      .from('pms_notifications')
+      .insert({
+        version_number,
+        pms_version_id: version_id,
+        event,
+        status: event === 'version_approved' ? 'approved' :
+                event === 'rebuild_requested' ? 'rebuild_requested' : event,
+        data: data || {}
+      });
 
-    case 'rebuild_requested':
-      console.log(`[PMS] Version ${version_number} REBUILD REQUESTED`);
-      console.log(`[PMS] Reason:`, data?.rebuild_notes);
-      console.log(`[PMS] Failed tests:`, data?.failed_tests);
-      // Could create GitHub issue, send alert, etc.
-      break;
+    if (insertError) {
+      console.error('[PMS Webhook] Failed to save notification:', insertError);
+    } else {
+      console.log('[PMS Webhook] Notification saved to database');
+    }
 
-    default:
-      console.log(`[PMS] Unknown event: ${event}`);
+    // Also update the local version status if approved
+    if (event === 'version_approved') {
+      const { error: updateError } = await supabase
+        .from('versions')
+        .update({ status: 'stable' })
+        .eq('version_number', version_number);
+
+      if (updateError) {
+        console.error('[PMS Webhook] Failed to update version status:', updateError);
+      } else {
+        console.log(`[PMS Webhook] Version ${version_number} marked as stable`);
+      }
+    }
+
+  } catch (error) {
+    console.error('[PMS Webhook] Error:', error);
   }
 
   return res.status(200).json({
