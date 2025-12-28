@@ -609,10 +609,63 @@ export default function TesterDashboard() {
                             </div>
                           )}
 
+                          {/* Failing Tests for rebuild_requested */}
+                          {pmsStatuses[version.version_number].event === 'rebuild_requested' &&
+                           pmsStatuses[version.version_number].data?.failing_tests && (
+                            <div className="space-y-2">
+                              {pmsStatuses[version.version_number].data.failing_tests.map((test, idx) => (
+                                <div key={idx} className="flex items-start gap-3 bg-white rounded-lg p-3 shadow-sm border border-red-100">
+                                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-red-100">
+                                    <i className="fas fa-times text-red-600"></i>
+                                  </span>
+                                  <div className="flex-1">
+                                    <div className="text-sm font-medium text-gray-900">{test.title}</div>
+                                    {test.tester_notes && (
+                                      <div className="text-xs text-gray-600 mt-1 bg-red-50 p-2 rounded">
+                                        <span className="font-medium">Tester Notes:</span> {test.tester_notes}
+                                      </div>
+                                    )}
+                                    {test.attachments && test.attachments.length > 0 && (
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {test.attachments.map((url, aIdx) => (
+                                          <a key={aIdx} href={url} target="_blank" rel="noopener noreferrer"
+                                             className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                            <i className="fas fa-paperclip"></i> Attachment {aIdx + 1}
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                    {test.status === 'not_working' ? 'Not Working' :
+                                     test.status === 'partially_working' ? 'Partially Working' :
+                                     test.status}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {pmsStatuses[version.version_number].data?.rebuild_notes && (
                             <div className="mt-4 p-3 bg-white rounded-lg border border-red-200">
-                              <div className="text-sm font-medium text-red-800 mb-1">Rebuild Notes:</div>
+                              <div className="text-sm font-medium text-red-800 mb-1">
+                                <i className="fas fa-comment-alt mr-1"></i> Rebuild Notes:
+                              </div>
                               <div className="text-sm text-gray-700">{pmsStatuses[version.version_number].data.rebuild_notes}</div>
+                            </div>
+                          )}
+
+                          {pmsStatuses[version.version_number].data?.test_summary && (
+                            <div className="mt-3 flex gap-4 text-xs">
+                              <span className="text-gray-600">
+                                Total: <span className="font-medium">{pmsStatuses[version.version_number].data.test_summary.total}</span>
+                              </span>
+                              <span className="text-green-600">
+                                Passing: <span className="font-medium">{pmsStatuses[version.version_number].data.test_summary.passing}</span>
+                              </span>
+                              <span className="text-red-600">
+                                Failing: <span className="font-medium">{pmsStatuses[version.version_number].data.test_summary.failing}</span>
+                              </span>
                             </div>
                           )}
 
